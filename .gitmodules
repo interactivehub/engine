@@ -1,3 +1,3 @@
-[submodule "proto"]
-	path = proto
+[submodule "postman"]
+	path = postman
 	url = https://github.com/interactivehub/postman.git

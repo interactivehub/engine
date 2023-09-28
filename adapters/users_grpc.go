@@ -26,17 +26,11 @@ func (u *UsersGrpcServer) NewUser(ctx context.Context, req *user.NewUserRequest)
 
 	userExists, err := u.usersRepo.UserWithIdExists(ctx, req.UserId)
 	if err != nil {
-		return &user.NewUserResponse{
-			Success: false,
-			Error:   "internal error",
-		}, err
+		return &user.NewUserResponse{}, err
 	}
 
 	if userExists {
-		return &user.NewUserResponse{
-			Success: false,
-			Error:   "user already exists",
-		}, errors.New("failed to create user. user already exists")
+		return &user.NewUserResponse{}, errors.New("failed to create user. user already exists")
 	}
 
 	usr, err := user.NewUser(
@@ -46,21 +40,15 @@ func (u *UsersGrpcServer) NewUser(ctx context.Context, req *user.NewUserRequest)
 		0,
 	)
 	if err != nil {
-		return &user.NewUserResponse{
-			Success: false,
-			Error:   "bad request",
-		}, err
+		return &user.NewUserResponse{}, err
 	}
 
 	err = u.usersRepo.CreateUser(ctx, *usr)
 	if err != nil {
-		return &user.NewUserResponse{
-			Success: false,
-			Error:   "internal error",
-		}, err
+		return &user.NewUserResponse{}, err
 	}
 
 	return &user.NewUserResponse{
-		Success: true,
+		UserId: usr.ID(),
 	}, nil
 }

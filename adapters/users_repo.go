@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"log"
 
 	"github.com/interactivehub/engine/domain/user"
 	"github.com/jmoiron/sqlx"
@@ -15,18 +16,18 @@ const (
 )
 
 type sqlUser struct {
-	id       string `db:"id"`
-	uniqueId string `db:unique_id`
-	nickname string `db:nickname`
-	points   int    `db:points`
+	ID       string `db:"id"`
+	UniqueID string `db:"unique_id"`
+	Nickname string `db:"nickname"`
+	Points   int    `db:"points"`
 }
 
-func NewFromUser(user user.User) *sqlUser {
+func newFromUser(user user.User) *sqlUser {
 	return &sqlUser{
-		id:       user.ID(),
-		uniqueId: user.UniqueID(),
-		nickname: user.Nickname(),
-		points:   user.Points(),
+		ID:       user.ID(),
+		UniqueID: user.UniqueID(),
+		Nickname: user.Nickname(),
+		Points:   user.Points(),
 	}
 }
 
@@ -69,9 +70,11 @@ func (u UsersRepo) UserWithIdExists(ctx context.Context, id string) (bool, error
 }
 
 func (u UsersRepo) CreateUser(ctx context.Context, user user.User) error {
-	sqlUser := NewFromUser(user)
+	sqlUser := newFromUser(user)
 
-	rows, err := u.db.NamedQuery(CreateUserQuery, sqlUser) // TODO fix this shit
+	log.Println(sqlUser)
+
+	rows, err := u.db.NamedQuery(CreateUserQuery, sqlUser)
 	if err != nil {
 		return errors.Wrap(err, "failed to create user")
 	}

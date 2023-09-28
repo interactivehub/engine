@@ -3,7 +3,7 @@
     "editor.insertSpaces": true,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "always"
+        "source.organizeImports": "always"
     },
     "editor.defaultFormatter": "golang.go"
   }

@@ -4,7 +4,7 @@
 // - protoc             v4.24.3
 // source: postman/users/users_service.proto
 
-package proto
+package user
 
 import (
 	context "context"

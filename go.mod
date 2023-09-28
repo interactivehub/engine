@@ -3,7 +3,10 @@ module github.com/interactivehub/engine
 go 1.21.0
 
 require (
-	github.com/gorilla/websocket v1.5.0
+	github.com/jmoiron/sqlx v1.3.5
+	github.com/joho/godotenv v1.5.1
+	github.com/lib/pq v1.10.9
+	github.com/pkg/errors v0.9.1
 	google.golang.org/grpc v1.58.2
 	google.golang.org/protobuf v1.31.0
 )

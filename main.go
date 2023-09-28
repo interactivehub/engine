@@ -23,7 +23,7 @@ func (s *server) NewUser(ctx context.Context, in *pb.NewUserRequest) (*pb.NewUse
 	log.Printf("Received: %v", in.GetUserId())
 	return &pb.NewUserResponse{
 		Success: true,
-		Data: "Hello",
+		Data:    "Hello",
 	}, nil
 }
 

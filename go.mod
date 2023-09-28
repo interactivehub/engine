@@ -3,6 +3,7 @@ module github.com/interactivehub/engine
 go 1.21.0
 
 require (
+	github.com/gorilla/websocket v1.5.0
 	google.golang.org/grpc v1.58.2
 	google.golang.org/protobuf v1.31.0
 )

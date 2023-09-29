@@ -2,7 +2,6 @@ package adapters
 
 import (
 	"context"
-	"log"
 
 	"github.com/interactivehub/engine/domain/user"
 	"github.com/jmoiron/sqlx"
@@ -10,9 +9,10 @@ import (
 )
 
 const (
-	CreateUserQuery    = "INSERT INTO users (id, unique_id, nickname, points) VALUES (:id, :unique_id, :nickname, :points)"
-	CountUserByIdQuery = "SELECT COUNT(id) FROM users WHERE id=$1"
-	GetUserByIDQuery   = "SELECT id, unique_id, nickname, points FROM users WHERE id=$1"
+	CreateUserQuery     = "INSERT INTO users (id, unique_id, nickname, points) VALUES (:id, :unique_id, :nickname, :points)"
+	CountUserByIdQuery  = "SELECT COUNT(id) FROM users WHERE id=$1"
+	GetUserByIDQuery    = "SELECT id, unique_id, nickname, points FROM users WHERE id=$1"
+	GetLeaderBoardQuery = "SELECT id, unique_id, nickname, points FROM users ORDER BY points DESC LIMIT $1"
 )
 
 type sqlUser struct {
@@ -50,7 +50,7 @@ func (u UsersRepo) TableName() string {
 func (u UsersRepo) GetUserById(ctx context.Context, id string) (user.User, error) {
 	user := user.User{}
 
-	err := u.db.Get(&user, GetUserByIDQuery, id)
+	err := u.db.GetContext(ctx, &user, GetUserByIDQuery, id)
 	if err != nil {
 		return user, errors.Wrap(err, "failed to get user by id")
 	}
@@ -58,10 +58,21 @@ func (u UsersRepo) GetUserById(ctx context.Context, id string) (user.User, error
 	return user, nil
 }
 
+func (u UsersRepo) GetLeaderBoard(ctx context.Context, limit int32) ([]user.User, error) {
+	var leaderBoard []user.User
+
+	err := u.db.SelectContext(ctx, &leaderBoard, GetLeaderBoardQuery, limit)
+	if err != nil {
+		return leaderBoard, errors.Wrap(err, "failed to get leader board")
+	}
+
+	return leaderBoard, nil
+}
+
 func (u UsersRepo) UserWithIdExists(ctx context.Context, id string) (bool, error) {
 	count := 0
 
-	err := u.db.Get(&count, CountUserByIdQuery, id)
+	err := u.db.GetContext(ctx, &count, CountUserByIdQuery, id)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to count users by id")
 	}
@@ -72,9 +83,7 @@ func (u UsersRepo) UserWithIdExists(ctx context.Context, id string) (bool, error
 func (u UsersRepo) CreateUser(ctx context.Context, user user.User) error {
 	sqlUser := newFromUser(user)
 
-	log.Println(sqlUser)
-
-	rows, err := u.db.NamedQuery(CreateUserQuery, sqlUser)
+	rows, err := u.db.NamedQueryContext(ctx, CreateUserQuery, sqlUser)
 	if err != nil {
 		return errors.Wrap(err, "failed to create user")
 	}

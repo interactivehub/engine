@@ -10,6 +10,7 @@ import (
 )
 
 func RunGRPCServer(registerServer func(server *grpc.Server)) {
+
 	port := os.Getenv("GRPC_PORT")
 	if port == "" {
 		port = "50051"
@@ -20,6 +21,8 @@ func RunGRPCServer(registerServer func(server *grpc.Server)) {
 }
 
 func RunGRPCServerOnAddr(addr string, registerServer func(server *grpc.Server)) {
+	log.Printf("Starting GRPC server on port %s", addr)
+
 	grpcServer := grpc.NewServer()
 	registerServer(grpcServer)
 

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/interactivehub/engine/adapters"
 	"github.com/interactivehub/engine/common/db"
 	"github.com/interactivehub/engine/common/server"
@@ -16,6 +19,9 @@ func main() {
 		panic(err)
 	}
 
+	runGRPC, _ := strconv.ParseBool(os.Getenv("RUN_GRPC"))
+	runWS, _ := strconv.ParseBool(os.Getenv("RUN_WEBSOCKET"))
+
 	db, err := db.NewConnection()
 	if err != nil {
 		panic(err)
@@ -23,12 +29,19 @@ func main() {
 
 	usersRepo := adapters.NewUsersRepo(db)
 
-	go server.RunGRPCServer(func(server *grpc.Server) {
-		usersGrpcServer := ports.NewUsersGrpcServer(usersRepo)
-		user.RegisterUsersServiceServer(server, usersGrpcServer)
-	})
+	if runGRPC {
+		go server.RunGRPCServer(func(server *grpc.Server) {
+			usersGrpcServer := ports.NewUsersGrpcServer(usersRepo)
+			user.RegisterUsersServiceServer(server, usersGrpcServer)
+		})
+	}
 
-	go server.RunWSServer()
+	if runWS {
+		go server.RunWSServer(func(server *server.WSServer) {
+			wsListener := ports.NewWSListener(server.Client())
+			wsListener.ListenEvents()
+		})
+	}
 
 	select {}
 }

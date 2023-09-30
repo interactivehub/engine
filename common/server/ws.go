@@ -1,14 +1,12 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gorilla/websocket"
-	"github.com/interactivehub/engine/common/ws"
 )
 
 var (
@@ -24,19 +22,6 @@ type WSServer struct {
 	client   *websocket.Conn
 }
 
-type WSInteractor struct {
-	WSListener
-	WSWriter
-}
-
-type WSListener interface {
-	ListenEvents()
-}
-
-type WSWriter interface {
-	WriteEvent(t string, p interface{}) error
-}
-
 func NewWSServer() *WSServer {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -50,58 +35,43 @@ func NewWSServer() *WSServer {
 	}
 }
 
-func RunWSServer() {
+func RunWSServer(f func(server *WSServer)) {
 	port := os.Getenv("WS_PORT")
 	if port == "" {
 		port = "8080"
 	}
 
 	addr := fmt.Sprintf(":%s", port)
-	RunWSServerOnAddr(addr)
+	RunWSServerOnAddr(addr, f)
 }
 
-func RunWSServerOnAddr(addr string) {
+func RunWSServerOnAddr(addr string, f func(server *WSServer)) {
+	log.Printf("Starting WebSocket server on port %s", addr)
+
 	wsServer := NewWSServer()
 
-	http.HandleFunc("/ws", wsServer.ServeHTTP)
+	http.HandleFunc("/ws", wsServer.ServeHTTP(f))
 
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
-func (s *WSServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	conn, err := wsUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	s.client = conn
-
-	defer s.client.Close()
-
-	s.ListenEvents()
-}
-
-func (s *WSServer) ListenEvents() {
-	for {
-		var event ws.Event
-
-		err := s.client.ReadJSON(&event)
+func (s *WSServer) ServeHTTP(f func(server *WSServer)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		conn, err := wsUpgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Println(err)
+			panic(err)
 		}
 
-		log.Println(event)
+		s.client = conn
+
+		f(s)
+
+		defer s.client.Close()
 	}
 }
 
-func (s *WSServer) WriteEvent(t string, p interface{}) error {
-	if s.client == nil {
-		return errors.New("missing ws client")
-	}
-
-	event := ws.NewEvent(t, p)
-
-	return s.client.WriteJSON(event)
+func (s *WSServer) Client() *websocket.Conn {
+	return s.client
 }
 
 func checkOrigin(r *http.Request) bool {

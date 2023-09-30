@@ -26,6 +26,7 @@ func (l *wsListener) ListenEvents() {
 		err := l.client.ReadJSON(&event)
 		if err != nil {
 			log.Println(err)
+			break
 		}
 
 		log.Println(event)

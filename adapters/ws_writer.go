@@ -14,12 +14,8 @@ type wsWriter struct {
 	client *websocket.Conn
 }
 
-func NewWSWriter(client *websocket.Conn) *wsWriter {
-	if client == nil {
-		panic("missing client")
-	}
-
-	return &wsWriter{client}
+func NewWSWriter() *wsWriter {
+	return &wsWriter{}
 }
 
 func (w *wsWriter) WriteEvent(t string, p interface{}) error {
@@ -30,4 +26,8 @@ func (w *wsWriter) WriteEvent(t string, p interface{}) error {
 	event := ws.NewEvent(t, p)
 
 	return w.client.WriteJSON(event)
+}
+
+func (w *wsWriter) SetClient(client *websocket.Conn) {
+	w.client = client
 }

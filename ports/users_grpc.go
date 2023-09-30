@@ -2,53 +2,33 @@ package ports
 
 import (
 	"context"
-	"errors"
-	"log"
 
+	"github.com/interactivehub/engine/app"
+	"github.com/interactivehub/engine/app/handlers"
 	"github.com/interactivehub/engine/domain/user"
+	"github.com/pkg/errors"
 )
 
 type UsersGrpcServer struct {
 	user.UnimplementedUsersServiceServer
-	usersRepo user.Repository
+	app app.Application
 }
 
-func NewUsersGrpcServer(usersRepo user.Repository) *UsersGrpcServer {
-	if usersRepo == nil {
-		panic("missing usersRepo")
-	}
-
-	return &UsersGrpcServer{usersRepo: usersRepo}
+func NewUsersGrpcServer(app app.Application) *UsersGrpcServer {
+	return &UsersGrpcServer{app: app}
 }
 
-func (u *UsersGrpcServer) NewUser(ctx context.Context, req *user.NewUserRequest) (*user.NewUserResponse, error) {
-	log.Println("Received req: ", req.GetNickname())
+func (s *UsersGrpcServer) NewUser(ctx context.Context, req *user.NewUserRequest) (*user.NewUserResponse, error) {
+	cmd := handlers.NewUser{
+		ID:       req.GetUserId(),
+		UniqueID: req.GetUniqueId(),
+		Nickname: req.GetNickname(),
+	}
 
-	userExists, err := u.usersRepo.UserWithIdExists(ctx, req.UserId)
+	res, err := s.app.Handlers.NewUser.Handle(ctx, cmd)
 	if err != nil {
-		return &user.NewUserResponse{}, err
+		return nil, errors.Wrap(err, "failed to create user")
 	}
 
-	if userExists {
-		return &user.NewUserResponse{}, errors.New("failed to create user. user already exists")
-	}
-
-	usr, err := user.NewUser(
-		req.GetUserId(),
-		req.GetUniqueId(),
-		req.GetNickname(),
-		0,
-	)
-	if err != nil {
-		return &user.NewUserResponse{}, err
-	}
-
-	err = u.usersRepo.CreateUser(ctx, *usr)
-	if err != nil {
-		return &user.NewUserResponse{}, err
-	}
-
-	return &user.NewUserResponse{
-		UserId: usr.ID(),
-	}, nil
+	return &user.NewUserResponse{UserId: res.ID}, nil
 }

@@ -73,10 +73,10 @@ func (h newUserHandler) Handle(ctx context.Context, cmd NewUser) (NewUserRespons
 	}
 
 	newUserEventPayload := NewUserEventPayload{
-		ID:       user.ID(),
-		UniqueID: user.UniqueID(),
-		Nickname: user.Nickname(),
-		Points:   user.Points(),
+		ID:       user.ID,
+		UniqueID: user.UniqueID,
+		Nickname: user.Nickname,
+		Points:   user.Points,
 	}
 
 	err = h.wsWriter.WriteEvent(NewUserEventType, newUserEventPayload)
@@ -85,9 +85,9 @@ func (h newUserHandler) Handle(ctx context.Context, cmd NewUser) (NewUserRespons
 	}
 
 	return NewUserResponse{
-		ID:       user.ID(),
-		UniqueID: user.UniqueID(),
-		Nickname: user.Nickname(),
-		Points:   user.Points(),
+		ID:       user.ID,
+		UniqueID: user.UniqueID,
+		Nickname: user.Nickname,
+		Points:   user.Points,
 	}, nil
 }

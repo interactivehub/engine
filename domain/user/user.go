@@ -3,10 +3,10 @@ package user
 import "errors"
 
 type User struct {
-	id       string
-	uniqueId string
-	nickname string
-	points   int
+	ID       string
+	UniqueID string
+	Nickname string
+	Points   int
 }
 
 func NewUser(id, uniqueId, nickname string, points int) (*User, error) {
@@ -31,21 +31,5 @@ func NewUser(id, uniqueId, nickname string, points int) (*User, error) {
 }
 
 func (u User) CanBet(bet int) bool {
-	return u.points >= bet
-}
-
-func (u User) ID() string {
-	return u.id
-}
-
-func (u User) UniqueID() string {
-	return u.uniqueId
-}
-
-func (u User) Nickname() string {
-	return u.nickname
-}
-
-func (u User) Points() int {
-	return u.points
+	return u.Points >= bet
 }

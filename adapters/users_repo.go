@@ -24,10 +24,10 @@ type sqlUser struct {
 
 func newFromUser(user user.User) *sqlUser {
 	return &sqlUser{
-		ID:       user.ID(),
-		UniqueID: user.UniqueID(),
-		Nickname: user.Nickname(),
-		Points:   user.Points(),
+		ID:       user.ID,
+		UniqueID: user.UniqueID,
+		Nickname: user.Nickname,
+		Points:   user.Points,
 	}
 }
 

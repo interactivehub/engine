@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
+	"github.com/interactivehub/engine/app"
 	"github.com/interactivehub/engine/common/ws"
 )
 
@@ -13,10 +14,11 @@ type WSListener interface {
 
 type wsListener struct {
 	client *websocket.Conn
+	app    app.Application
 }
 
-func NewWSListener(client *websocket.Conn) *wsListener {
-	return &wsListener{client}
+func NewWSListener(client *websocket.Conn, app app.Application) *wsListener {
+	return &wsListener{client, app}
 }
 
 func (l *wsListener) ListenEvents() {

@@ -18,6 +18,7 @@ CREATE TABLE
         user_id VARCHAR(255),
         wager FLOAT NOT NULL,
         pick VARCHAR(255) NOT NULL,
+        entered_at TIMESTAMP NOT NULL DEFAULT NOW (),
         PRIMARY KEY (round_id, user_id),
         FOREIGN KEY (round_id) REFERENCES roulette_rounds (id) ON UPDATE CASCADE ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE

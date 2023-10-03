@@ -43,10 +43,6 @@ func NewUsersRepo(db *sqlx.DB) *UsersRepo {
 	return &UsersRepo{db}
 }
 
-func (u UsersRepo) TableName() string {
-	return "users"
-}
-
 func (u UsersRepo) GetUserById(ctx context.Context, id string) (user.User, error) {
 	user := user.User{}
 

@@ -49,13 +49,6 @@ func NewRouletteRound(clientSeed, serverSeed []byte) (*RouletteRound, error) {
 	}, nil
 }
 
-func (r *RouletteRound) SetClientSeed(clientSeed []byte) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	r.clientSeed = clientSeed
-}
-
 func (r *RouletteRound) Join(userId string, wager float64, pick RouletteSlotColor) {
 	r.lock.Lock()
 	defer r.lock.Unlock()

@@ -42,6 +42,10 @@ func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*provablyFair, error
 	}, nil
 }
 
+func (f *provablyFair) SetClientSeed(clientSeed []byte) {
+	f.clientSeed = clientSeed
+}
+
 func (f *provablyFair) Calculate() (uint64, error) {
 	hmac, err := f.CalculateHMAC()
 	if err != nil {

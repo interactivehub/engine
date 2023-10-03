@@ -3,8 +3,13 @@
     "editor.insertSpaces": true,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-        "source.organizeImports": "always"
+      "source.organizeImports": "always"
     },
     "editor.defaultFormatter": "golang.go"
+  },
+  "[sql]": {
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode"
   }
 }

@@ -24,10 +24,6 @@ type provablyFair struct {
 }
 
 func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*provablyFair, error) {
-	if len(clientSeed) == 0 {
-		return nil, ErrClientSeedBlank
-	}
-
 	if len(serverSeed) == 0 {
 		var err error
 		serverSeed, err = newServerSeed(32)
@@ -47,17 +43,21 @@ func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*provablyFair, error
 }
 
 func (f *provablyFair) Calculate() (uint64, error) {
-	ourHMAC := string(f.CalculateHMAC())
+	hmac, err := f.CalculateHMAC()
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to calculate outcome")
+	}
 
-	var err error
+	stringifiedHMAC := string(hmac)
+
 	var randNum uint64
-	for i := 0; i < len(ourHMAC)-5; i++ {
+	for i := 0; i < len(stringifiedHMAC)-5; i++ {
 		idx := i * 5
-		if len(ourHMAC) < (idx + 5) {
+		if len(stringifiedHMAC) < (idx + 5) {
 			break
 		}
 
-		randNum, err = strconv.ParseUint(ourHMAC[idx:idx+5], 16, 0)
+		randNum, err = strconv.ParseUint(stringifiedHMAC[idx:idx+5], 16, 0)
 		if err != nil {
 			return 0, err
 		}
@@ -74,14 +74,18 @@ func (f *provablyFair) Calculate() (uint64, error) {
 	return randNum % 15, nil
 }
 
-func (f *provablyFair) CalculateHMAC() []byte {
+func (f *provablyFair) CalculateHMAC() ([]byte, error) {
+	if len(f.clientSeed) == 0 {
+		return nil, ErrClientSeedBlank
+	}
+
 	h := hmac.New(sha512.New, f.serverSeed)
 	h.Write(append(append(f.clientSeed, '-'), []byte(strconv.FormatUint(f.nonce, 10))...))
 
 	ourHMAC := make([]byte, 128)
 	hex.Encode(ourHMAC, h.Sum(nil))
 
-	return ourHMAC
+	return ourHMAC, nil
 }
 
 func newServerSeed(byteCount int) ([]byte, error) {

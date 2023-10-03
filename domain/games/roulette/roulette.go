@@ -32,7 +32,7 @@ type RouletteRoundEntry struct {
 	pick   RouletteSlotColor
 }
 
-func NewRouletteRound(clientSeed []byte, serverSeed []byte) (*RouletteRound, error) {
+func NewRouletteRound(clientSeed, serverSeed []byte) (*RouletteRound, error) {
 	provablyFair, err := NewProvablyFair(clientSeed, serverSeed)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate a provably fair round")
@@ -47,6 +47,13 @@ func NewRouletteRound(clientSeed []byte, serverSeed []byte) (*RouletteRound, err
 		startTime:    startTime,
 		endTime:      endTime,
 	}, nil
+}
+
+func (r *RouletteRound) SetClientSeed(clientSeed []byte) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.clientSeed = clientSeed
 }
 
 func (r *RouletteRound) Join(userId string, wager float64, pick RouletteSlotColor) {

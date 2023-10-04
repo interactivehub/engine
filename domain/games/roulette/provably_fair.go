@@ -92,6 +92,18 @@ func (f *ProvablyFair) CalculateHMAC() ([]byte, error) {
 	return ourHMAC, nil
 }
 
+func (f *ProvablyFair) StringServerSeed() string {
+	return hex.EncodeToString(f.ServerSeed)
+}
+
+func (f *ProvablyFair) StringClientSeed() string {
+	return hex.EncodeToString(f.ClientSeed)
+}
+
+func (f *ProvablyFair) StringBlindedServerSeed() string {
+	return hex.EncodeToString(f.BlindedServerSeed)
+}
+
 func newServerSeed(byteCount int) ([]byte, error) {
 	seed := make([]byte, byteCount)
 

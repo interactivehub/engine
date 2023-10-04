@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: use squirrel
 const (
 	CreateUserQuery     = "INSERT INTO users (id, unique_id, nickname, points) VALUES (:id, :unique_id, :nickname, :points)"
 	CountUserByIdQuery  = "SELECT COUNT(id) FROM users WHERE id=$1"

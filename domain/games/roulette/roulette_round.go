@@ -14,22 +14,20 @@ const (
 	DefaultRouletteRoundDuration   = 10 * time.Second
 )
 
-// TODO: Persist this in db (for the future)
 type RouletteRound struct {
-	provablyFair
-	id        uuid.UUID
-	entries   []RouletteRoundEntry
-	outcome   rouletteSlot
-	lock      sync.Mutex
-	startTime time.Time
-	endTime   time.Time
+	ProvablyFair
+	lock      *sync.Mutex
+	ID        uuid.UUID
+	Entries   []RouletteRoundEntry
+	Outcome   rouletteSlot
+	StartTime time.Time
+	EndTime   time.Time
 }
 
-// TODO: Persist this in db (for the future)
 type RouletteRoundEntry struct {
-	userId string
-	wager  float64
-	pick   RouletteSlotColor
+	UserID string
+	Wager  float64
+	Pick   RouletteSlotColor
 }
 
 func NewRouletteRound(clientSeed, serverSeed []byte) (*RouletteRound, error) {
@@ -42,10 +40,10 @@ func NewRouletteRound(clientSeed, serverSeed []byte) (*RouletteRound, error) {
 	endTime := startTime.Add(DefaultRouletteRoundDuration)
 
 	return &RouletteRound{
-		provablyFair: *provablyFair,
-		id:           uuid.New(),
-		startTime:    startTime,
-		endTime:      endTime,
+		ProvablyFair: *provablyFair,
+		ID:           uuid.New(),
+		StartTime:    startTime,
+		EndTime:      endTime,
 	}, nil
 }
 
@@ -55,7 +53,7 @@ func (r *RouletteRound) Join(userId string, wager float64, pick RouletteSlotColo
 
 	entry := RouletteRoundEntry{userId, wager, pick}
 
-	r.entries = append(r.entries, entry)
+	r.Entries = append(r.Entries, entry)
 }
 
 func (r *RouletteRound) Roll() (rouletteSlot, error) {
@@ -67,21 +65,21 @@ func (r *RouletteRound) Roll() (rouletteSlot, error) {
 		return rouletteSlot{}, errors.Wrap(err, "failed to calculate round roll")
 	}
 
-	r.nonce++
+	r.Nonce++
 
 	winningSlot, err := GetSlotByIdx(roll)
 	if err != nil {
 		return rouletteSlot{}, errors.Wrap(err, "failed to get winning slot")
 	}
 
-	r.outcome = winningSlot
+	r.Outcome = winningSlot
 
 	return winningSlot, nil
 }
 
 func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) (bool, error) {
 	game, _ := NewRouletteRound(clientSeed, serverSeed)
-	game.nonce = nonce
+	game.Nonce = nonce
 
 	roll, err := game.Calculate()
 
@@ -92,4 +90,8 @@ func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) 
 	}
 
 	return roll == randNum, nil
+}
+
+func (r *RouletteRound) GetOutcomeIdx() int {
+	return r.Outcome.idx
 }

@@ -16,14 +16,14 @@ var (
 	ErrInvalidNonce    = errors.New("invalid nonce")
 )
 
-type provablyFair struct {
-	serverSeed        []byte
-	clientSeed        []byte
-	blindedServerSeed []byte
-	nonce             uint64
+type ProvablyFair struct {
+	ServerSeed        []byte
+	ClientSeed        []byte
+	BlindedServerSeed []byte
+	Nonce             uint64
 }
 
-func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*provablyFair, error) {
+func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*ProvablyFair, error) {
 	if len(serverSeed) == 0 {
 		var err error
 		serverSeed, err = newServerSeed(32)
@@ -34,19 +34,19 @@ func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*provablyFair, error
 
 	blindedSeed := sha256.Sum256(serverSeed)
 
-	return &provablyFair{
-		nonce:             0,
-		clientSeed:        clientSeed,
-		serverSeed:        serverSeed,
-		blindedServerSeed: blindedSeed[:],
+	return &ProvablyFair{
+		Nonce:             0,
+		ClientSeed:        clientSeed,
+		ServerSeed:        serverSeed,
+		BlindedServerSeed: blindedSeed[:],
 	}, nil
 }
 
-func (f *provablyFair) SetClientSeed(clientSeed []byte) {
-	f.clientSeed = clientSeed
+func (f *ProvablyFair) SetClientSeed(clientSeed []byte) {
+	f.ClientSeed = clientSeed
 }
 
-func (f *provablyFair) Calculate() (uint64, error) {
+func (f *ProvablyFair) Calculate() (uint64, error) {
 	hmac, err := f.CalculateHMAC()
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to calculate outcome")
@@ -78,13 +78,13 @@ func (f *provablyFair) Calculate() (uint64, error) {
 	return randNum % 15, nil
 }
 
-func (f *provablyFair) CalculateHMAC() ([]byte, error) {
-	if len(f.clientSeed) == 0 {
+func (f *ProvablyFair) CalculateHMAC() ([]byte, error) {
+	if len(f.ClientSeed) == 0 {
 		return nil, ErrClientSeedBlank
 	}
 
-	h := hmac.New(sha512.New, f.serverSeed)
-	h.Write(append(append(f.clientSeed, '-'), []byte(strconv.FormatUint(f.nonce, 10))...))
+	h := hmac.New(sha512.New, f.ServerSeed)
+	h.Write(append(append(f.ClientSeed, '-'), []byte(strconv.FormatUint(f.Nonce, 10))...))
 
 	ourHMAC := make([]byte, 128)
 	hex.Encode(ourHMAC, h.Sum(nil))

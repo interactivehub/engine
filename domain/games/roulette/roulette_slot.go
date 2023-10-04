@@ -55,3 +55,7 @@ func GetSlotByIdx(idx uint64) (rouletteSlot, error) {
 
 	return rouletteSlots[idx], nil
 }
+
+func GetRouletteSlots() []rouletteSlot {
+	return rouletteSlots
+}

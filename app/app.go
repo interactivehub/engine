@@ -1,13 +1,13 @@
 package app
 
 import (
-	"github.com/interactivehub/engine/app/handlers"
+	"github.com/interactivehub/engine/app/command"
 )
 
 type Application struct {
-	Handlers Handlers
+	Commands Commands
 }
 
-type Handlers struct {
-	NewUser handlers.NewUserHandler
+type Commands struct {
+	NewUser command.NewUserHandler
 }

@@ -1,4 +1,4 @@
-package handlers
+package command
 
 import (
 	"context"
@@ -26,14 +26,7 @@ type NewUserEventPayload struct {
 	Points   int    `json:"points"`
 }
 
-type NewUserResponse struct {
-	ID       string
-	UniqueID string
-	Nickname string
-	Points   int
-}
-
-type NewUserHandler decorator.Handler[NewUser, NewUserResponse]
+type NewUserHandler decorator.CommandHandler[NewUser]
 
 type newUserHandler struct {
 	usersRepo user.Repository
@@ -52,24 +45,24 @@ func NewNewUserHandler(usersRepo user.Repository, wsWriter adapters.WSWriter) Ne
 	return newUserHandler{usersRepo, wsWriter}
 }
 
-func (h newUserHandler) Handle(ctx context.Context, cmd NewUser) (NewUserResponse, error) {
+func (h newUserHandler) Handle(ctx context.Context, cmd NewUser) error {
 	userExists, err := h.usersRepo.UserWithIdExists(ctx, cmd.ID)
 	if err != nil {
-		return NewUserResponse{}, err
+		return errors.Wrap(err, "failed to create new user")
 	}
 
 	if userExists {
-		return NewUserResponse{}, errors.New("failed to create user. user already exists")
+		return errors.New("failed to create user. user already exists")
 	}
 
 	user, err := user.NewUser(cmd.ID, cmd.UniqueID, cmd.Nickname, 0)
 	if err != nil {
-		return NewUserResponse{}, err
+		return errors.Wrap(err, "failed to create new user")
 	}
 
 	err = h.usersRepo.CreateUser(ctx, *user)
 	if err != nil {
-		return NewUserResponse{}, err
+		return errors.Wrap(err, "failed to create new user")
 	}
 
 	newUserEventPayload := NewUserEventPayload{
@@ -81,13 +74,8 @@ func (h newUserHandler) Handle(ctx context.Context, cmd NewUser) (NewUserRespons
 
 	err = h.wsWriter.WriteEvent(NewUserEventType, newUserEventPayload)
 	if err != nil {
-		return NewUserResponse{}, errors.Wrap(err, "error sending newly created user")
+		return errors.Wrap(err, "error sending newly created user event")
 	}
 
-	return NewUserResponse{
-		ID:       user.ID,
-		UniqueID: user.UniqueID,
-		Nickname: user.Nickname,
-		Points:   user.Points,
-	}, nil
+	return nil
 }

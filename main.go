@@ -6,7 +6,7 @@ import (
 
 	"github.com/interactivehub/engine/adapters"
 	"github.com/interactivehub/engine/app"
-	"github.com/interactivehub/engine/app/handlers"
+	"github.com/interactivehub/engine/app/command"
 	"github.com/interactivehub/engine/common/db"
 	"github.com/interactivehub/engine/common/server"
 	"github.com/interactivehub/engine/domain/user"
@@ -34,8 +34,8 @@ func main() {
 	wsWriter := adapters.NewWSWriter()
 
 	app := app.Application{
-		Handlers: app.Handlers{
-			NewUser: handlers.NewNewUserHandler(usersRepo, wsWriter),
+		Commands: app.Commands{
+			NewUser: command.NewNewUserHandler(usersRepo, wsWriter),
 		},
 	}
 

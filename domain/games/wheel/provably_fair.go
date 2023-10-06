@@ -1,4 +1,4 @@
-package roulette
+package wheel
 
 import (
 	"crypto/hmac"

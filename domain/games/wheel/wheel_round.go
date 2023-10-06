@@ -1,4 +1,4 @@
-package roulette
+package wheel
 
 import (
 	"log"
@@ -10,36 +10,37 @@ import (
 )
 
 const (
-	DefaultRouletteRoundStartDelay = 10 * time.Second
-	DefaultRouletteRoundDuration   = 10 * time.Second
+	DefaultWheelRoundStartDelay = 10 * time.Second
+	DefaultWheelRoundDuration   = 10 * time.Second
 )
 
-type RouletteRound struct {
+// TODO: Wheel -> Wheel/Fortune Wheel
+type WheelRound struct {
 	ProvablyFair
 	lock      *sync.Mutex
 	ID        uuid.UUID
-	Entries   []RouletteRoundEntry
-	Outcome   rouletteSlot
+	Entries   []WheelRoundEntry
+	Outcome   wheelItem
 	StartTime time.Time
 	EndTime   time.Time
 }
 
-type RouletteRoundEntry struct {
+type WheelRoundEntry struct {
 	UserID string
 	Wager  float64
-	Pick   RouletteSlotColor
+	Pick   WheelItemColor
 }
 
-func NewRouletteRound(clientSeed, serverSeed []byte) (*RouletteRound, error) {
+func NewWheelRound(clientSeed, serverSeed []byte) (*WheelRound, error) {
 	provablyFair, err := NewProvablyFair(clientSeed, serverSeed)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate a provably fair round")
 	}
 
-	startTime := time.Now().Add(DefaultRouletteRoundStartDelay)
-	endTime := startTime.Add(DefaultRouletteRoundDuration)
+	startTime := time.Now().Add(DefaultWheelRoundStartDelay)
+	endTime := startTime.Add(DefaultWheelRoundDuration)
 
-	return &RouletteRound{
+	return &WheelRound{
 		ProvablyFair: *provablyFair,
 		ID:           uuid.New(),
 		StartTime:    startTime,
@@ -47,38 +48,38 @@ func NewRouletteRound(clientSeed, serverSeed []byte) (*RouletteRound, error) {
 	}, nil
 }
 
-func (r *RouletteRound) Join(userId string, wager float64, pick RouletteSlotColor) {
+func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	entry := RouletteRoundEntry{userId, wager, pick}
+	entry := WheelRoundEntry{userId, wager, pick}
 
 	r.Entries = append(r.Entries, entry)
 }
 
-func (r *RouletteRound) Roll() (rouletteSlot, error) {
+func (r *WheelRound) Roll() (wheelItem, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	roll, err := r.Calculate()
 	if err != nil {
-		return rouletteSlot{}, errors.Wrap(err, "failed to calculate round roll")
+		return wheelItem{}, errors.Wrap(err, "failed to calculate round roll")
 	}
 
 	r.Nonce++
 
-	winningSlot, err := GetSlotByIdx(roll)
+	winningItem, err := GetItemByIdx(int(roll))
 	if err != nil {
-		return rouletteSlot{}, errors.Wrap(err, "failed to get winning slot")
+		return wheelItem{}, errors.Wrap(err, "failed to get winning item")
 	}
 
-	r.Outcome = winningSlot
+	r.Outcome = winningItem
 
-	return winningSlot, nil
+	return winningItem, nil
 }
 
 func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) (bool, error) {
-	game, _ := NewRouletteRound(clientSeed, serverSeed)
+	game, _ := NewWheelRound(clientSeed, serverSeed)
 	game.Nonce = nonce
 
 	roll, err := game.Calculate()
@@ -92,6 +93,6 @@ func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) 
 	return roll == randNum, nil
 }
 
-func (r *RouletteRound) GetOutcomeIdx() int {
+func (r *WheelRound) GetOutcomeIdx() int {
 	return r.Outcome.idx
 }

@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE
-    IF NOT EXISTS roulette_rounds (
+    IF NOT EXISTS wheel_rounds (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
         outcome_idx INT NOT NULL,
         start_time TIMESTAMP NOT NULL,
@@ -13,13 +13,13 @@ CREATE TABLE
     );
 
 CREATE TABLE
-    IF NOT EXISTS roulette_round_entries (
+    IF NOT EXISTS wheel_round_entries (
         round_id UUID,
         user_id VARCHAR(255),
         wager FLOAT NOT NULL,
         pick VARCHAR(255) NOT NULL,
         entered_at TIMESTAMP NOT NULL DEFAULT NOW (),
         PRIMARY KEY (round_id, user_id),
-        FOREIGN KEY (round_id) REFERENCES roulette_rounds (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY (round_id) REFERENCES wheel_rounds (id) ON UPDATE CASCADE ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
     );

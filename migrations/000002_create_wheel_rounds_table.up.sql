@@ -4,7 +4,7 @@ CREATE TABLE
     IF NOT EXISTS wheel_rounds (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
         outcome_idx INT NOT NULL,
-        start_time TIMESTAMP NOT NULL,
+        start_time TIMESTAMP NOT NULL DEFAULT NOW (),
         end_time TIMESTAMP NOT NULL,
         server_seed VARCHAR(32) NOT NULL,
         client_seed VARCHAR(255) NOT NULL,

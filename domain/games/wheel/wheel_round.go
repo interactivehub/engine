@@ -52,6 +52,8 @@ func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	// TODO: Validate
+
 	entry := WheelRoundEntry{userId, wager, pick}
 
 	r.Entries = append(r.Entries, entry)

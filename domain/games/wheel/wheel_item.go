@@ -3,7 +3,7 @@ package wheel
 import "github.com/pkg/errors"
 
 var (
-	errorIdxOutOfBounds = errors.New("item index out of valid bounds (0 - 14)")
+	errorIdxOutOfBounds = errors.New("item index out of valid bounds (0 - 30)")
 )
 
 type WheelItemColor string

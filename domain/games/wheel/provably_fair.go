@@ -24,6 +24,10 @@ type ProvablyFair struct {
 }
 
 func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*ProvablyFair, error) {
+	if len(clientSeed) == 0 {
+		return nil, ErrClientSeedBlank
+	}
+
 	if len(serverSeed) == 0 {
 		var err error
 		serverSeed, err = newServerSeed(32)
@@ -42,19 +46,11 @@ func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*ProvablyFair, error
 	}, nil
 }
 
-func (f *ProvablyFair) SetClientSeed(clientSeed []byte) {
-	f.ClientSeed = clientSeed
-}
-
 func (f *ProvablyFair) Calculate() (uint64, error) {
-	hmac, err := f.CalculateHMAC()
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to calculate outcome")
-	}
-
-	stringifiedHMAC := string(hmac)
+	stringifiedHMAC := string(f.CalculateHMAC())
 
 	var randNum uint64
+	var err error
 	for i := 0; i < len(stringifiedHMAC)-5; i++ {
 		idx := i * 5
 		if len(stringifiedHMAC) < (idx + 5) {
@@ -75,21 +71,17 @@ func (f *ProvablyFair) Calculate() (uint64, error) {
 		return 0, ErrInvalidNonce
 	}
 
-	return randNum % 15, nil
+	return randNum % 31, nil // TODO: Make 31 configurable, this is good only for Wheel
 }
 
-func (f *ProvablyFair) CalculateHMAC() ([]byte, error) {
-	if len(f.ClientSeed) == 0 {
-		return nil, ErrClientSeedBlank
-	}
-
+func (f *ProvablyFair) CalculateHMAC() []byte {
 	h := hmac.New(sha512.New, f.ServerSeed)
 	h.Write(append(append(f.ClientSeed, '-'), []byte(strconv.FormatUint(f.Nonce, 10))...))
 
 	ourHMAC := make([]byte, 128)
 	hex.Encode(ourHMAC, h.Sum(nil))
 
-	return ourHMAC, nil
+	return ourHMAC
 }
 
 func (f *ProvablyFair) StringServerSeed() string {

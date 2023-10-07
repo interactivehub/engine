@@ -1,6 +1,7 @@
 package wheel
 
 import (
+	"log"
 	"sync"
 	"time"
 
@@ -31,6 +32,8 @@ type WheelRound struct {
 	RoundStartTime time.Time
 	RoundEndTime   time.Time
 	SpinStartTime  time.Time
+	OpenDuration   time.Duration
+	SpinDuration   time.Duration
 }
 
 type WheelRoundEntry struct {
@@ -39,16 +42,21 @@ type WheelRoundEntry struct {
 	Pick   WheelItemColor
 }
 
-// TODO: Add More validations
-func NewWheelRound(clientSeed, serverSeed []byte, prevNonce uint64) (*WheelRound, error) {
+func NewWheelRound(
+	clientSeed,
+	serverSeed []byte,
+	prevNonce uint64,
+	openDuration,
+	spinDuration time.Duration,
+) (*WheelRound, error) {
 	provablyFair, err := NewProvablyFair(clientSeed, serverSeed, prevNonce)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate a provably fair round")
 	}
 
 	roundStartTime := time.Now()
-	spinStartTime := roundStartTime.Add(WheelRoundOpenDuration)
-	roundEndTime := spinStartTime.Add(WheelRoundSpinDuration)
+	spinStartTime := roundStartTime.Add(openDuration)
+	roundEndTime := spinStartTime.Add(spinDuration)
 
 	return &WheelRound{
 		ProvablyFair:   *provablyFair,
@@ -58,6 +66,8 @@ func NewWheelRound(clientSeed, serverSeed []byte, prevNonce uint64) (*WheelRound
 		RoundStartTime: roundStartTime,
 		SpinStartTime:  spinStartTime,
 		RoundEndTime:   roundEndTime,
+		OpenDuration:   openDuration,
+		SpinDuration:   spinDuration,
 	}, nil
 }
 
@@ -102,6 +112,8 @@ func (r *WheelRound) Roll() (wheelItem, error) {
 	r.Outcome = winningItem
 	r.Status = WheelRoundStatusSpin
 
+	log.Println("outcome: ", r.Outcome)
+
 	return winningItem, nil
 }
 
@@ -128,7 +140,7 @@ func (r *WheelRound) GetOutcomeIdx() int {
 }
 
 func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) (bool, error) {
-	game, _ := NewWheelRound(clientSeed, serverSeed, 0)
+	game, _ := NewWheelRound(clientSeed, serverSeed, 0, WheelRoundOpenDuration, WheelRoundSpinDuration)
 	game.Nonce = nonce
 
 	roll, err := game.Calculate()

@@ -43,7 +43,6 @@ func NewStartWheelRoundHandler(
 func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound) error {
 	latestRound, err := h.wheelRoundsRepo.GetLatest(ctx)
 	if err != nil {
-		log.Println(err)
 		return errors.Wrap(err, "failed to retrieve latest wheel round")
 	}
 
@@ -52,16 +51,29 @@ func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound)
 		return ErrCannotStartWheelRound
 	}
 
-	newRound, err := wheel.NewWheelRound(cmd.ClientSeed, nil, latestRound.Nonce)
+	newRound, err := wheel.NewWheelRound(cmd.ClientSeed, nil, latestRound.Nonce, wheel.WheelRoundOpenDuration, wheel.WheelRoundSpinDuration)
 	if err != nil {
 		return errors.Wrap(err, "failed to start wheel round")
 	}
 
-	err = h.wheelRoundsRepo.PersistWheelRound(ctx, *newRound)
-	if err != nil {
-		log.Println(err)
-		return errors.Wrap(err, "failed to store wheel round")
-	}
+	newRound.
+		Auto().
+		Start().
+		OnStatusChange(func(r *wheel.WheelRound) error {
+			log.Println("status changed")
+			log.Println(r.Status)
+
+			return nil
+		}).
+		OnRoundEnd(func(r *wheel.WheelRound) error {
+			err = h.wheelRoundsRepo.PersistWheelRound(ctx, *newRound)
+			if err != nil {
+				log.Println(err)
+				return errors.Wrap(err, "failed to store wheel round")
+			}
+
+			return nil
+		})
 
 	return nil
 }

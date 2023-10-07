@@ -51,12 +51,12 @@ func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound)
 		return ErrCannotStartWheelRound
 	}
 
-	newRound, err := wheel.NewWheelRound(cmd.ClientSeed, nil, latestRound.Nonce, wheel.WheelRoundOpenDuration, wheel.WheelRoundSpinDuration)
+	round, err := wheel.NewWheelRound(cmd.ClientSeed, nil, latestRound.Nonce, wheel.WheelRoundOpenDuration, wheel.WheelRoundSpinDuration)
 	if err != nil {
 		return errors.Wrap(err, "failed to start wheel round")
 	}
 
-	newRound.
+	round.
 		Auto().
 		Start().
 		OnStatusChange(func(r *wheel.WheelRound) error {
@@ -66,7 +66,7 @@ func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound)
 			return nil
 		}).
 		OnRoundEnd(func(r *wheel.WheelRound) error {
-			err = h.wheelRoundsRepo.PersistWheelRound(ctx, *newRound)
+			err = h.wheelRoundsRepo.PersistWheelRound(ctx, *round)
 			if err != nil {
 				log.Println(err)
 				return errors.Wrap(err, "failed to store wheel round")

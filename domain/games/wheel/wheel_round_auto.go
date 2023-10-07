@@ -5,48 +5,30 @@ import (
 	"time"
 )
 
-type onRoundEnder interface {
-	OnRoundEnd(func(r *WheelRound) error) starterOnStatusChanger
-}
-
-type onStatusChanger interface {
-	OnStatusChange(func(r *WheelRound) error) starterOnRoundEnder
-}
-
-type starter interface {
-	Start() onRoundEnderOnStatusChanger
-}
-
-type starterOnRoundEnder interface {
-	starter
-	onRoundEnder
-}
-
-type starterOnStatusChanger interface {
-	starter
-	onStatusChanger
-}
-
-type onRoundEnderOnStatusChanger interface {
-	onRoundEnder
-	onStatusChanger
-}
-
-type AutoWheelRounder interface {
-	starter
-	onStatusChanger
-	onRoundEnder
+type WheelRoundAutoer interface {
+	Start() WheelRoundAutoer
+	OnRoundStart(func(r *WheelRound) error) WheelRoundAutoer
+	OnRoundEnd(func(r *WheelRound) error) WheelRoundAutoer
+	OnStatusChange(func(r *WheelRound) error) WheelRoundAutoer
 }
 
 type WheelRoundAuto struct {
 	*WheelRound
+	alreadyStarted  bool
 	openToSpinTimer *time.Timer
 	spinToEndTimer  *time.Timer
 	onStatusChange  func(r *WheelRound) error
+	onRoundStart    func(r *WheelRound) error
 	onRoundEnd      func(r *WheelRound) error
 }
 
-func (r *WheelRoundAuto) Start() onRoundEnderOnStatusChanger {
+func (r *WheelRoundAuto) Start() WheelRoundAutoer {
+	if r.alreadyStarted {
+		return r
+	}
+
+	r.alreadyStarted = true
+
 	go func() {
 		for {
 			select {
@@ -82,19 +64,25 @@ func (r *WheelRoundAuto) Start() onRoundEnderOnStatusChanger {
 	return r
 }
 
-func (r *WheelRoundAuto) OnStatusChange(onStatusChange func(r *WheelRound) error) starterOnRoundEnder {
+func (r *WheelRoundAuto) OnStatusChange(onStatusChange func(r *WheelRound) error) WheelRoundAutoer {
 	r.onStatusChange = onStatusChange
 
 	return r
 }
 
-func (r *WheelRoundAuto) OnRoundEnd(onRoundEnd func(r *WheelRound) error) starterOnStatusChanger {
+func (r *WheelRoundAuto) OnRoundStart(onRoundStart func(r *WheelRound) error) WheelRoundAutoer {
+	r.onRoundStart = onRoundStart
+
+	return r
+}
+
+func (r *WheelRoundAuto) OnRoundEnd(onRoundEnd func(r *WheelRound) error) WheelRoundAutoer {
 	r.onRoundEnd = onRoundEnd
 
 	return r
 }
 
-func (r *WheelRound) Auto() AutoWheelRounder {
+func (r *WheelRound) Auto() WheelRoundAutoer {
 	openToSpinTimer := time.NewTimer(r.OpenDuration)
 	spinToEndTimer := time.NewTimer(r.OpenDuration + r.SpinDuration)
 

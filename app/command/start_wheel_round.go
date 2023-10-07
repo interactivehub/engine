@@ -8,6 +8,7 @@ import (
 	"github.com/interactivehub/engine/common/decorator"
 	"github.com/interactivehub/engine/domain/games/wheel"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 var (
@@ -28,6 +29,7 @@ type startWheelRoundHandler struct {
 func NewStartWheelRoundHandler(
 	wsWriter adapters.WSWriter,
 	wheelRoundsRepo wheel.Repository,
+	logger *zap.Logger,
 ) StartWheelRoundHandler {
 	if wsWriter == nil {
 		panic("missing wsWriter")
@@ -37,7 +39,11 @@ func NewStartWheelRoundHandler(
 		panic("missing wheelRoundsRepo")
 	}
 
-	return startWheelRoundHandler{wsWriter, wheelRoundsRepo}
+	return decorator.ApplyCommandDecorators[StartWheelRound](
+		startWheelRoundHandler{wsWriter, wheelRoundsRepo},
+		logger,
+	)
+
 }
 
 func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound) error {

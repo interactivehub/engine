@@ -60,6 +60,8 @@ func (r *WheelRoundAuto) Start() WheelRoundAutoer {
 				if r.onRoundEnd != nil {
 					r.onRoundEnd(r.WheelRound)
 				}
+
+				return
 			}
 		}
 	}()

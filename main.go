@@ -8,6 +8,7 @@ import (
 	"github.com/interactivehub/engine/app"
 	"github.com/interactivehub/engine/app/command"
 	"github.com/interactivehub/engine/common/db"
+	"github.com/interactivehub/engine/common/logger"
 	"github.com/interactivehub/engine/common/server"
 	"github.com/interactivehub/engine/domain/user"
 	"github.com/interactivehub/engine/ports"
@@ -29,6 +30,9 @@ func main() {
 		panic(err)
 	}
 
+	logger := logger.Init()
+	defer logger.Sync()
+
 	// TODO: Find a way to set this bitchass inside app.NewApplication
 	usersRepo := adapters.NewUsersRepo(db)
 	wheelRoundsRepo := adapters.NewWheelRoundsRepo(db)
@@ -36,8 +40,8 @@ func main() {
 
 	app := app.Application{
 		Commands: app.Commands{
-			NewUser:         command.NewNewUserHandler(usersRepo, wsWriter),
-			StartWheelRound: command.NewStartWheelRoundHandler(wsWriter, wheelRoundsRepo),
+			NewUser:         command.NewNewUserHandler(usersRepo, wsWriter, logger),
+			StartWheelRound: command.NewStartWheelRoundHandler(wsWriter, wheelRoundsRepo, logger),
 		},
 	}
 

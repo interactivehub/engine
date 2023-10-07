@@ -7,6 +7,7 @@ import (
 	"github.com/interactivehub/engine/common/decorator"
 	"github.com/interactivehub/engine/domain/user"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 const (
@@ -33,7 +34,11 @@ type newUserHandler struct {
 	wsWriter  adapters.WSWriter
 }
 
-func NewNewUserHandler(usersRepo user.Repository, wsWriter adapters.WSWriter) NewUserHandler {
+func NewNewUserHandler(
+	usersRepo user.Repository,
+	wsWriter adapters.WSWriter,
+	logger *zap.Logger,
+) NewUserHandler {
 	if usersRepo == nil {
 		panic("missing usersRepo")
 	}
@@ -42,7 +47,11 @@ func NewNewUserHandler(usersRepo user.Repository, wsWriter adapters.WSWriter) Ne
 		panic("missing wsWriter")
 	}
 
-	return newUserHandler{usersRepo, wsWriter}
+	return decorator.ApplyCommandDecorators[NewUser](
+		newUserHandler{usersRepo, wsWriter},
+		logger,
+	)
+
 }
 
 func (h newUserHandler) Handle(ctx context.Context, cmd NewUser) error {

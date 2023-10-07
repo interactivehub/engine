@@ -1,7 +1,6 @@
 package wheel
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -111,8 +110,6 @@ func (r *WheelRound) Roll() (wheelItem, error) {
 
 	r.Outcome = winningItem
 	r.Status = WheelRoundStatusSpin
-
-	log.Println("outcome: ", r.Outcome)
 
 	return winningItem, nil
 }

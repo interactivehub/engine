@@ -9,11 +9,14 @@ import (
 )
 
 const (
-	DefaultWheelRoundStartDelay = 10 * time.Second
-	DefaultWheelRoundDuration   = 10 * time.Second
+	DefaultWheelRoundStartDelay = 15 * time.Second
+	DefaultWheelRoundDuration   = 15 * time.Second
 )
 
-// TODO: Wheel -> Wheel/Fortune Wheel
+var (
+	ErrRoundEndTooSoon = errors.New("could not end wheel round yet")
+)
+
 type WheelRound struct {
 	ProvablyFair
 	lock      *sync.Mutex
@@ -37,15 +40,30 @@ func NewWheelRound(clientSeed, serverSeed []byte) (*WheelRound, error) {
 	}
 
 	startTime := time.Now().Add(DefaultWheelRoundStartDelay)
-	endTime := startTime.Add(DefaultWheelRoundDuration)
 
 	return &WheelRound{
 		ProvablyFair: *provablyFair,
 		ID:           uuid.New(),
 		StartTime:    startTime,
-		EndTime:      endTime,
 		lock:         new(sync.Mutex),
 	}, nil
+}
+
+func (r *WheelRound) EndRound() error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	endTime := time.Now()
+
+	minRoundLength := DefaultWheelRoundStartDelay + DefaultWheelRoundDuration
+
+	if endTime.Sub(r.StartTime) < minRoundLength {
+		return ErrRoundEndTooSoon
+	}
+
+	r.EndTime = time.Now()
+
+	return nil
 }
 
 func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) {

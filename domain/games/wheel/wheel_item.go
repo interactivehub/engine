@@ -1,6 +1,8 @@
 package wheel
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 var (
 	errorIdxOutOfBounds = errors.New("item index out of valid bounds (0 - 30)")
@@ -30,39 +32,43 @@ const (
 
 var (
 	wheelItems = []wheelItem{
-		{color: "#FA4475", payout: WinningPercentageBrand},  // Brand, 30x
-		{color: "#FFE066", payout: WinningPercentageYellow}, // Red, 5x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#FFE066", payout: WinningPercentageYellow}, // Red, 5x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#FFE066", payout: WinningPercentageYellow}, // Red, 5x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#FFE066", payout: WinningPercentageYellow}, // Red, 5x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#FFE066", payout: WinningPercentageYellow}, // Red, 5x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
-		{color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
-		{color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 0, color: "#FA4475", payout: WinningPercentageBrand},   // Brand, 30x
+		{idx: 1, color: "#FFE066", payout: WinningPercentageYellow},  // Red, 5x
+		{idx: 2, color: "#606E80", payout: WinningPercentageGrey},    // Grey, 2x
+		{idx: 3, color: "#5ADBFF", payout: WinningPercentageBlue},    // Blue, 3x
+		{idx: 4, color: "#606E80", payout: WinningPercentageGrey},    // Grey, 2x
+		{idx: 5, color: "#5ADBFF", payout: WinningPercentageBlue},    // Blue, 3x
+		{idx: 6, color: "#606E80", payout: WinningPercentageGrey},    // Grey, 2x
+		{idx: 7, color: "#5ADBFF", payout: WinningPercentageBlue},    // Blue, 3x
+		{idx: 8, color: "#606E80", payout: WinningPercentageGrey},    // Grey, 2x
+		{idx: 9, color: "#FFE066", payout: WinningPercentageYellow},  // Red, 5x
+		{idx: 10, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 11, color: "#FFE066", payout: WinningPercentageYellow}, // Red, 5x
+		{idx: 12, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 13, color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
+		{idx: 14, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 15, color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
+		{idx: 16, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 17, color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
+		{idx: 18, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 19, color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
+		{idx: 20, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 21, color: "#FFE066", payout: WinningPercentageYellow}, // Red, 5x
+		{idx: 22, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 23, color: "#FFE066", payout: WinningPercentageYellow}, // Red, 5x
+		{idx: 24, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 25, color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
+		{idx: 26, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 27, color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
+		{idx: 28, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
+		{idx: 29, color: "#5ADBFF", payout: WinningPercentageBlue},   // Blue, 3x
+		{idx: 30, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
 	}
 )
+
+func WheelItems() []wheelItem {
+	return wheelItems
+}
 
 func GetItemByIdx(idx int) (wheelItem, error) {
 	if idx > len(wheelItems)-1 {

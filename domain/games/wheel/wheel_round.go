@@ -1,7 +1,6 @@
 package wheel
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -45,6 +44,7 @@ func NewWheelRound(clientSeed, serverSeed []byte) (*WheelRound, error) {
 		ID:           uuid.New(),
 		StartTime:    startTime,
 		EndTime:      endTime,
+		lock:         new(sync.Mutex),
 	}, nil
 }
 
@@ -85,8 +85,6 @@ func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) 
 	game.Nonce = nonce
 
 	roll, err := game.Calculate()
-
-	log.Println(roll)
 
 	if err != nil {
 		return false, errors.Wrap(err, "failed to verify round")

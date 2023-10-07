@@ -6,9 +6,9 @@ CREATE TABLE
         outcome_idx INT NOT NULL,
         start_time TIMESTAMP NOT NULL DEFAULT NOW (),
         end_time TIMESTAMP NOT NULL,
-        server_seed VARCHAR(32) NOT NULL,
+        server_seed VARCHAR(64) NOT NULL,
         client_seed VARCHAR(255) NOT NULL,
-        blinded_server_seed VARCHAR(32) NOT NULL,
+        blinded_server_seed VARCHAR(64) NOT NULL,
         nonce INT NOT NULL
     );
 

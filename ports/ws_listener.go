@@ -1,10 +1,13 @@
 package ports
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 
 	"github.com/gorilla/websocket"
 	"github.com/interactivehub/engine/app"
+	"github.com/interactivehub/engine/app/command"
 	"github.com/interactivehub/engine/common/ws"
 )
 
@@ -31,6 +34,24 @@ func (l *wsListener) ListenEvents() {
 			break
 		}
 
-		log.Println(event)
+		handleEvent(context.Background(), l.app, event)
+	}
+}
+
+const (
+	RequestWheelRoundEventType = "requestWheelRound"
+)
+
+type RequestWheelRoundEventPayload struct {
+	ClientSeed string `json:"clientSeed"`
+}
+
+func handleEvent(ctx context.Context, app app.Application, event ws.Event) {
+	switch event.Type {
+	case RequestWheelRoundEventType:
+		var payload RequestWheelRoundEventPayload
+		json.Unmarshal(event.Payload, &payload)
+
+		app.Commands.StartWheelRound.Handle(ctx, command.StartWheelRound{ClientSeed: []byte(payload.ClientSeed)})
 	}
 }

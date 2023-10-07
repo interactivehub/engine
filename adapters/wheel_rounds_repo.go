@@ -3,7 +3,6 @@ package adapters
 import (
 	"context"
 	"database/sql"
-	"log"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -75,9 +74,9 @@ func (r WheelRoundsRepo) GetLatest(ctx context.Context) (wheel.WheelRound, error
 		return wheel.WheelRound{}, errors.Wrap(err, "failed to retrieve latest wheel round")
 	}
 
-	var round wheel.WheelRound
+	var sqlRound sqlWheelRound
 
-	if err = r.db.GetContext(ctx, &round, query, args...); err != nil {
+	if err = r.db.GetContext(ctx, &sqlRound, query, args...); err != nil {
 		if err == sql.ErrNoRows {
 			return wheel.WheelRound{}, nil
 		}
@@ -85,64 +84,67 @@ func (r WheelRoundsRepo) GetLatest(ctx context.Context) (wheel.WheelRound, error
 		return wheel.WheelRound{}, err
 	}
 
-	return round, nil
+	return wheel.WheelRound{
+		ID: sqlRound.ID,
+		ProvablyFair: wheel.ProvablyFair{
+			ServerSeed:        []byte(sqlRound.ServerSeed),
+			ClientSeed:        []byte(sqlRound.ClientSeed),
+			BlindedServerSeed: []byte(sqlRound.BlindedServerSeed),
+			Nonce:             uint64(sqlRound.Nonce),
+		},
+		// Entries: TODO: Gotta join with wheel_round_entries table
+		Outcome:   wheel.WheelItems()[sqlRound.OutcomeIdx],
+		StartTime: sqlRound.StartTime,
+		EndTime:   sqlRound.EndTime,
+	}, nil
 }
 
 func (r WheelRoundsRepo) PersistWheelRound(ctx context.Context, round wheel.WheelRound) error {
 	sqlR := newFromWheelRound(round)
-	var sqlRe []sqlWheelRoundEntry
+	// var sqlRe []sqlWheelRoundEntry
 
-	for _, e := range round.Entries {
-		sqlRe = append(sqlRe, *newFromWheelRoundEntry(round.ID, e))
-	}
+	// for _, e := range round.Entries {
+	// 	sqlRe = append(sqlRe, *newFromWheelRoundEntry(round.ID, e))
+	// }
 
-	rSql, rArgs, err := sq.
-		Insert("wheel_rounds").
-		Columns("id", "outcome_idx", "start_time", "end_time", "server_seed", "client_seed", "blinded_server_seed", "nonce").
-		Values(sqlR.ID, sqlR.OutcomeIdx, sqlR.StartTime, sqlR.EndTime, sqlR.ServerSeed, sqlR.ClientSeed, sqlR.BlindedServerSeed, sqlR.Nonce).
-		ToSql()
+	sql := "INSERT INTO wheel_rounds (id, outcome_idx, start_time, end_time, server_seed, client_seed, blinded_server_seed, nonce) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);"
+
+	// tx, err := r.db.BeginTx(ctx, nil)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// defer tx.Rollback()
+
+	_, err := r.db.ExecContext(ctx, sql, sqlR.ID, sqlR.OutcomeIdx, sqlR.StartTime, sqlR.EndTime, sqlR.ServerSeed, sqlR.ClientSeed, sqlR.BlindedServerSeed, sqlR.Nonce)
 	if err != nil {
 		return errors.Wrap(err, "failed to persist wheel round")
 	}
 
-	log.Println(rSql)
+	// if len(sqlRe) > 0 {
+	// 	baseReSql := sq.
+	// 		Insert("wheel_round_entries").
+	// 		Columns("round_id", "user_id", "wager", "pick")
 
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
+	// 	for _, re := range sqlRe {
+	// 		baseReSql.Values(re.RoundID, re.UserID, re.Wager, re.Pick)
+	// 	}
 
-	defer tx.Rollback()
+	// 	reSql, reArgs, err := baseReSql.ToSql()
+	// 	if err != nil {
+	// 		return errors.Wrap(err, "failed to persist wheel round entries")
+	// 	}
 
-	_, err = tx.ExecContext(ctx, rSql, rArgs...)
-	if err != nil {
-		return errors.Wrap(err, "failed to persist wheel round")
-	}
+	// 	_, err = tx.ExecContext(ctx, reSql, reArgs...)
+	// 	if err != nil {
+	// 		return errors.Wrap(err, "failed to persist wheel round entries")
+	// 	}
+	// }
 
-	if len(sqlRe) > 0 {
-		baseReSql := sq.
-			Insert("wheel_round_entries").
-			Columns("round_id", "user_id", "wager", "pick")
-
-		for _, re := range sqlRe {
-			baseReSql.Values(re.RoundID, re.UserID, re.Wager, re.Pick)
-		}
-
-		reSql, reArgs, err := baseReSql.ToSql()
-		if err != nil {
-			return errors.Wrap(err, "failed to persist wheel round entries")
-		}
-
-		_, err = tx.ExecContext(ctx, reSql, reArgs...)
-		if err != nil {
-			return errors.Wrap(err, "failed to persist wheel round entries")
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return errors.Wrap(err, "failed to commit transaction")
-	}
+	// err = tx.Commit()
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to commit transaction")
+	// }
 
 	return nil
 }

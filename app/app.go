@@ -9,5 +9,6 @@ type Application struct {
 }
 
 type Commands struct {
-	NewUser command.NewUserHandler
+	NewUser         command.NewUserHandler
+	StartWheelRound command.StartWheelRoundHandler
 }

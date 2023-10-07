@@ -31,11 +31,13 @@ func main() {
 
 	// TODO: Find a way to set this bitchass inside app.NewApplication
 	usersRepo := adapters.NewUsersRepo(db)
+	wheelRoundsRepo := adapters.NewWheelRoundsRepo(db)
 	wsWriter := adapters.NewWSWriter()
 
 	app := app.Application{
 		Commands: app.Commands{
-			NewUser: command.NewNewUserHandler(usersRepo, wsWriter),
+			NewUser:         command.NewNewUserHandler(usersRepo, wsWriter),
+			StartWheelRound: command.NewStartWheelRoundHandler(wsWriter, wheelRoundsRepo),
 		},
 	}
 

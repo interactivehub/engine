@@ -50,6 +50,9 @@ func (r *WheelRoundAuto) Start() WheelRoundAutoer {
 					continue
 				}
 
+				r.openToSpinTimer.Stop()
+				r.spinToEndTimer.Stop()
+
 				if r.onStatusChange != nil {
 					r.onStatusChange(r.WheelRound)
 				}

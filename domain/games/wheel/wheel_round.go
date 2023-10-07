@@ -9,33 +9,28 @@ import (
 )
 
 const (
-	DefaultWheelRoundStartDelay = 15 * time.Second
-	DefaultWheelRoundDuration   = 15 * time.Second
-)
-
-var (
-	ErrWheelRoundEndTooSoon = errors.New("could not end wheel round yet")
-	ErrWheelRoundNotOpen    = errors.New("wheel round is not open")
-	ErrWheelRoundNotRolling = errors.New("wheel round is not rolling")
+	WheelRoundOpenDuration = 15 * time.Second
+	WheelRoundSpinDuration = 10 * time.Second
 )
 
 type WheelRoundStatus string
 
 const (
-	WheelRoundStatusOpen    WheelRoundStatus = "open"
-	WheelRoundStatusRolling WheelRoundStatus = "rolling"
-	WheelRoundStatusClosed  WheelRoundStatus = "closed"
+	WheelRoundStatusOpen WheelRoundStatus = "open"
+	WheelRoundStatusSpin WheelRoundStatus = "spin"
+	WheelRoundStatusEnd  WheelRoundStatus = "end"
 )
 
 type WheelRound struct {
 	ProvablyFair
-	lock      *sync.Mutex
-	ID        uuid.UUID
-	Status    WheelRoundStatus
-	Entries   []WheelRoundEntry
-	Outcome   wheelItem
-	StartTime time.Time
-	EndTime   time.Time
+	lock           *sync.Mutex
+	ID             uuid.UUID
+	Status         WheelRoundStatus
+	Entries        []WheelRoundEntry
+	Outcome        wheelItem
+	RoundStartTime time.Time
+	RoundEndTime   time.Time
+	SpinStartTime  time.Time
 }
 
 type WheelRoundEntry struct {
@@ -51,37 +46,19 @@ func NewWheelRound(clientSeed, serverSeed []byte, prevNonce uint64) (*WheelRound
 		return nil, errors.Wrap(err, "failed to generate a provably fair round")
 	}
 
-	startTime := time.Now().Add(DefaultWheelRoundStartDelay)
+	roundStartTime := time.Now()
+	spinStartTime := roundStartTime.Add(WheelRoundOpenDuration)
+	roundEndTime := spinStartTime.Add(WheelRoundSpinDuration)
 
 	return &WheelRound{
-		ProvablyFair: *provablyFair,
-		ID:           uuid.New(),
-		Status:       WheelRoundStatusOpen,
-		StartTime:    startTime,
-		lock:         new(sync.Mutex),
+		ProvablyFair:   *provablyFair,
+		ID:             uuid.New(),
+		Status:         WheelRoundStatusOpen,
+		lock:           new(sync.Mutex),
+		RoundStartTime: roundStartTime,
+		SpinStartTime:  spinStartTime,
+		RoundEndTime:   roundEndTime,
 	}, nil
-}
-
-func (r *WheelRound) EndRound() error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	if r.Status != WheelRoundStatusRolling {
-		return ErrWheelRoundNotRolling
-	}
-
-	endTime := time.Now()
-
-	minRoundLength := DefaultWheelRoundStartDelay + DefaultWheelRoundDuration
-
-	if endTime.Sub(r.StartTime) < minRoundLength {
-		return ErrWheelRoundEndTooSoon
-	}
-
-	r.EndTime = time.Now()
-	r.Status = WheelRoundStatusClosed
-
-	return nil
 }
 
 func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) error {
@@ -89,7 +66,7 @@ func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) err
 	defer r.lock.Unlock()
 
 	if r.Status != WheelRoundStatusOpen {
-		return ErrWheelRoundNotOpen
+		return errors.New("wheel round is not open")
 	}
 
 	entry := WheelRoundEntry{userId, wager, pick}
@@ -104,7 +81,12 @@ func (r *WheelRound) Roll() (wheelItem, error) {
 	defer r.lock.Unlock()
 
 	if r.Status != WheelRoundStatusOpen {
-		return wheelItem{}, ErrWheelRoundNotOpen
+		return wheelItem{}, errors.New("wheel round is not open")
+	}
+
+	now := time.Now()
+	if now.Before(r.SpinStartTime) || now.After(r.RoundEndTime) {
+		return wheelItem{}, errors.New("rolling outside valid time")
 	}
 
 	roll, err := r.Calculate()
@@ -118,9 +100,31 @@ func (r *WheelRound) Roll() (wheelItem, error) {
 	}
 
 	r.Outcome = winningItem
-	r.Status = WheelRoundStatusRolling
+	r.Status = WheelRoundStatusSpin
 
 	return winningItem, nil
+}
+
+func (r *WheelRound) EndRound() error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if r.Status != WheelRoundStatusSpin {
+		return errors.New("wheel round is not in the spin phase")
+	}
+
+	now := time.Now()
+	if now.Before(r.RoundEndTime) {
+		return errors.New("ending the round too early")
+	}
+
+	r.Status = WheelRoundStatusEnd
+
+	return nil
+}
+
+func (r *WheelRound) GetOutcomeIdx() int {
+	return r.Outcome.idx
 }
 
 func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) (bool, error) {
@@ -136,14 +140,10 @@ func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) 
 	return roll == randNum, nil
 }
 
-func (r *WheelRound) GetOutcomeIdx() int {
-	return r.Outcome.idx
-}
-
 func CanStartNewRound(previousRound WheelRound) bool {
 	if previousRound.ID == uuid.Nil {
 		return true
 	}
 
-	return previousRound.Status == WheelRoundStatusClosed
+	return previousRound.Status == WheelRoundStatusEnd
 }

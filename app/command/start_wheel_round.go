@@ -43,6 +43,7 @@ func NewStartWheelRoundHandler(
 func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound) error {
 	latestRound, err := h.wheelRoundsRepo.GetLatest(ctx)
 	if err != nil {
+		log.Println(err)
 		return errors.Wrap(err, "failed to retrieve latest wheel round")
 	}
 

@@ -51,12 +51,10 @@ func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound)
 		return ErrCannotStartWheelRound
 	}
 
-	newRound, err := wheel.NewWheelRound(cmd.ClientSeed, nil)
+	newRound, err := wheel.NewWheelRound(cmd.ClientSeed, nil, latestRound.Nonce)
 	if err != nil {
 		return errors.Wrap(err, "failed to start wheel round")
 	}
-
-	newRound.Roll()
 
 	err = h.wheelRoundsRepo.PersistWheelRound(ctx, *newRound)
 	if err != nil {

@@ -23,7 +23,7 @@ type ProvablyFair struct {
 	Nonce             uint64
 }
 
-func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*ProvablyFair, error) {
+func NewProvablyFair(clientSeed, serverSeed []byte, prevNonce uint64) (*ProvablyFair, error) {
 	if len(clientSeed) == 0 {
 		return nil, ErrClientSeedBlank
 	}
@@ -39,7 +39,7 @@ func NewProvablyFair(clientSeed []byte, serverSeed []byte) (*ProvablyFair, error
 	blindedSeed := sha256.Sum256(serverSeed)
 
 	return &ProvablyFair{
-		Nonce:             0,
+		Nonce:             prevNonce + 1,
 		ClientSeed:        clientSeed,
 		ServerSeed:        serverSeed,
 		BlindedServerSeed: blindedSeed[:],

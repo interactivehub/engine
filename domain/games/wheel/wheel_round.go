@@ -15,14 +15,16 @@ const (
 
 var (
 	ErrWheelRoundEndTooSoon = errors.New("could not end wheel round yet")
-	ErrWheelRoundNotOngoing = errors.New("wheel round is not ongoing")
+	ErrWheelRoundNotOpen    = errors.New("wheel round is not open")
+	ErrWheelRoundNotRolling = errors.New("wheel round is not rolling")
 )
 
 type WheelRoundStatus string
 
 const (
-	WheelRoundOngoing WheelRoundStatus = "ongoing"
-	WheelRoundEnded   WheelRoundStatus = "ended"
+	WheelRoundStatusOpen    WheelRoundStatus = "open"
+	WheelRoundStatusRolling WheelRoundStatus = "rolling"
+	WheelRoundStatusClosed  WheelRoundStatus = "closed"
 )
 
 type WheelRound struct {
@@ -42,8 +44,9 @@ type WheelRoundEntry struct {
 	Pick   WheelItemColor
 }
 
-func NewWheelRound(clientSeed, serverSeed []byte) (*WheelRound, error) {
-	provablyFair, err := NewProvablyFair(clientSeed, serverSeed)
+// TODO: Add More validations
+func NewWheelRound(clientSeed, serverSeed []byte, prevNonce uint64) (*WheelRound, error) {
+	provablyFair, err := NewProvablyFair(clientSeed, serverSeed, prevNonce)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate a provably fair round")
 	}
@@ -53,7 +56,7 @@ func NewWheelRound(clientSeed, serverSeed []byte) (*WheelRound, error) {
 	return &WheelRound{
 		ProvablyFair: *provablyFair,
 		ID:           uuid.New(),
-		Status:       WheelRoundOngoing,
+		Status:       WheelRoundStatusOpen,
 		StartTime:    startTime,
 		lock:         new(sync.Mutex),
 	}, nil
@@ -63,8 +66,8 @@ func (r *WheelRound) EndRound() error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	if r.Status != WheelRoundOngoing {
-		return ErrWheelRoundNotOngoing
+	if r.Status != WheelRoundStatusRolling {
+		return ErrWheelRoundNotRolling
 	}
 
 	endTime := time.Now()
@@ -76,34 +79,38 @@ func (r *WheelRound) EndRound() error {
 	}
 
 	r.EndTime = time.Now()
-	r.Status = WheelRoundEnded
+	r.Status = WheelRoundStatusClosed
 
 	return nil
 }
 
-func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) {
+func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	// TODO: Validate
+	if r.Status != WheelRoundStatusOpen {
+		return ErrWheelRoundNotOpen
+	}
 
 	entry := WheelRoundEntry{userId, wager, pick}
 
 	r.Entries = append(r.Entries, entry)
+
+	return nil
 }
 
 func (r *WheelRound) Roll() (wheelItem, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	// TODO: Check if round is ongoing
+	if r.Status != WheelRoundStatusOpen {
+		return wheelItem{}, ErrWheelRoundNotOpen
+	}
 
 	roll, err := r.Calculate()
 	if err != nil {
 		return wheelItem{}, errors.Wrap(err, "failed to calculate round roll")
 	}
-
-	r.Nonce++
 
 	winningItem, err := GetItemByIdx(int(roll))
 	if err != nil {
@@ -111,12 +118,13 @@ func (r *WheelRound) Roll() (wheelItem, error) {
 	}
 
 	r.Outcome = winningItem
+	r.Status = WheelRoundStatusRolling
 
 	return winningItem, nil
 }
 
 func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) (bool, error) {
-	game, _ := NewWheelRound(clientSeed, serverSeed)
+	game, _ := NewWheelRound(clientSeed, serverSeed, 0)
 	game.Nonce = nonce
 
 	roll, err := game.Calculate()
@@ -137,5 +145,5 @@ func CanStartNewRound(previousRound WheelRound) bool {
 		return true
 	}
 
-	return previousRound.Status == WheelRoundEnded
+	return previousRound.Status == WheelRoundStatusClosed
 }

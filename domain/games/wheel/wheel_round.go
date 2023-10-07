@@ -14,13 +14,22 @@ const (
 )
 
 var (
-	ErrRoundEndTooSoon = errors.New("could not end wheel round yet")
+	ErrWheelRoundEndTooSoon = errors.New("could not end wheel round yet")
+	ErrWheelRoundNotOngoing = errors.New("wheel round is not ongoing")
+)
+
+type WheelRoundStatus string
+
+const (
+	WheelRoundOngoing WheelRoundStatus = "ongoing"
+	WheelRoundEnded   WheelRoundStatus = "ended"
 )
 
 type WheelRound struct {
 	ProvablyFair
 	lock      *sync.Mutex
 	ID        uuid.UUID
+	Status    WheelRoundStatus
 	Entries   []WheelRoundEntry
 	Outcome   wheelItem
 	StartTime time.Time
@@ -44,6 +53,7 @@ func NewWheelRound(clientSeed, serverSeed []byte) (*WheelRound, error) {
 	return &WheelRound{
 		ProvablyFair: *provablyFair,
 		ID:           uuid.New(),
+		Status:       WheelRoundOngoing,
 		StartTime:    startTime,
 		lock:         new(sync.Mutex),
 	}, nil
@@ -53,15 +63,20 @@ func (r *WheelRound) EndRound() error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	if r.Status != WheelRoundOngoing {
+		return ErrWheelRoundNotOngoing
+	}
+
 	endTime := time.Now()
 
 	minRoundLength := DefaultWheelRoundStartDelay + DefaultWheelRoundDuration
 
 	if endTime.Sub(r.StartTime) < minRoundLength {
-		return ErrRoundEndTooSoon
+		return ErrWheelRoundEndTooSoon
 	}
 
 	r.EndTime = time.Now()
+	r.Status = WheelRoundEnded
 
 	return nil
 }
@@ -80,6 +95,8 @@ func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) {
 func (r *WheelRound) Roll() (wheelItem, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
+
+	// TODO: Check if round is ongoing
 
 	roll, err := r.Calculate()
 	if err != nil {
@@ -113,4 +130,12 @@ func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) 
 
 func (r *WheelRound) GetOutcomeIdx() int {
 	return r.Outcome.idx
+}
+
+func CanStartNewRound(previousRound WheelRound) bool {
+	if previousRound.ID == uuid.Nil {
+		return true
+	}
+
+	return previousRound.Status == WheelRoundEnded
 }

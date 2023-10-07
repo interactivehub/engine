@@ -9,6 +9,7 @@ CREATE TABLE
         server_seed VARCHAR(64) NOT NULL,
         client_seed VARCHAR(255) NOT NULL,
         blinded_server_seed VARCHAR(64) NOT NULL,
+        status VARCHAR(10) NOT NULL,
         nonce INT NOT NULL
     );
 

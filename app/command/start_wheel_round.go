@@ -3,9 +3,7 @@ package command
 import (
 	"context"
 	"log"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/interactivehub/engine/adapters"
 	"github.com/interactivehub/engine/common/decorator"
 	"github.com/interactivehub/engine/domain/games/wheel"
@@ -48,7 +46,7 @@ func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound)
 		return errors.Wrap(err, "failed to retrieve latest wheel round")
 	}
 
-	canStart := canRoundStart(latestRound)
+	canStart := wheel.CanStartNewRound(latestRound)
 	if !canStart {
 		return ErrCannotStartWheelRound
 	}
@@ -67,14 +65,4 @@ func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound)
 	}
 
 	return nil
-}
-
-func canRoundStart(latestRound wheel.WheelRound) bool {
-	if latestRound.ID == uuid.Nil {
-		return true
-	}
-
-	now := time.Now()
-
-	return latestRound.EndTime.Before(now)
 }

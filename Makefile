@@ -13,6 +13,7 @@ COLOR_INFO=\033[1;34m
 .PHONY: protoc
 protoc:
 	protoc --go_out=. --go-grpc_out=. postman/users/users_service.proto
+	protoc --go_out=. --go-grpc_out=. postman/games/wheel/wheel_service.proto
 
 .PHONY: new-migration
 new-migration:

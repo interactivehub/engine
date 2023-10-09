@@ -26,7 +26,7 @@ type WheelRound struct {
 	lock           *sync.Mutex
 	ID             uuid.UUID
 	Status         WheelRoundStatus
-	Entries        []WheelRoundEntry
+	Entries        []*WheelRoundEntry
 	Outcome        wheelItem
 	RoundStartTime time.Time
 	RoundEndTime   time.Time
@@ -36,9 +36,11 @@ type WheelRound struct {
 }
 
 type WheelRoundEntry struct {
-	UserID string
-	Wager  float64
-	Pick   WheelItemColor
+	RoundID   uuid.UUID
+	UserID    string
+	Bet       float64
+	Pick      WheelItemColor
+	EntryTime time.Time
 }
 
 func NewWheelRound(
@@ -70,7 +72,24 @@ func NewWheelRound(
 	}, nil
 }
 
-func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) error {
+func NewWheelRoundEntry(
+	roundId uuid.UUID,
+	userId string,
+	bet float64,
+	pick WheelItemColor,
+) *WheelRoundEntry {
+	entryTime := time.Now()
+
+	return &WheelRoundEntry{
+		RoundID:   roundId,
+		UserID:    userId,
+		Bet:       bet,
+		Pick:      pick,
+		EntryTime: entryTime,
+	}
+}
+
+func (r *WheelRound) Join(userId string, bet float64, pick WheelItemColor) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -78,7 +97,7 @@ func (r *WheelRound) Join(userId string, wager float64, pick WheelItemColor) err
 		return errors.New("wheel round is not open")
 	}
 
-	entry := WheelRoundEntry{userId, wager, pick}
+	entry := NewWheelRoundEntry(r.ID, userId, bet, pick)
 
 	r.Entries = append(r.Entries, entry)
 
@@ -149,8 +168,8 @@ func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) 
 	return roll == randNum, nil
 }
 
-func CanStartNewRound(previousRound WheelRound) bool {
-	if previousRound.ID == uuid.Nil {
+func CanStartNewRound(previousRound *WheelRound) bool {
+	if previousRound == nil {
 		return true
 	}
 

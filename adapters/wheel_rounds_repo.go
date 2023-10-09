@@ -12,14 +12,23 @@ import (
 )
 
 const (
-	getLatestRoundQuery = `
+	getByIdQuery = `
+        SELECT id, outcome_idx, round_start_time, spin_start_time, round_end_time, server_seed, client_seed, blinded_server_seed, nonce, status
+        FROM wheel_rounds
+        WHERE id=$1;
+    `
+	getLatestQuery = `
         SELECT id, outcome_idx, round_start_time, spin_start_time, round_end_time, server_seed, client_seed, blinded_server_seed, nonce, status
         FROM wheel_rounds
         ORDER BY round_end_time DESC;
     `
-	createWheelRoundQuery = `
+	createQuery = `
         INSERT INTO wheel_rounds (id, outcome_idx, round_start_time, spin_start_time, round_end_time, server_seed, client_seed, blinded_server_seed, nonce, status)
         VALUES (:id, :outcome_idx, :round_start_time, :spin_start_time, :round_end_time, :server_seed, :client_seed, :blinded_server_seed, :nonce, :status);
+    `
+	createEntryQuery = `
+        INSERT INTO wheel_round_entries (round_id, user_id, bet, pick, entry_time)
+        VALUES (:round_id, :user_id, :bet, :pick, :entry_time); 
     `
 )
 
@@ -34,39 +43,15 @@ type sqlWheelRound struct {
 	BlindedServerSeed string                 `db:"blinded_server_seed"`
 	Nonce             int                    `db:"nonce"`
 	Status            wheel.WheelRoundStatus `db:"status"`
-	Entries           []sqlWheelRoundEntry   `db:"-"`
+	Entries           []*sqlWheelRoundEntry  `db:"-"`
 }
 
 type sqlWheelRoundEntry struct {
 	RoundID   uuid.UUID `db:"round_id"`
 	UserID    string    `db:"user_id"`
-	Wager     float64   `db:"wager"`
+	Bet       float64   `db:"bet"`
 	Pick      string    `db:"pick"`
-	EnteredAt time.Time `db:"entered_at"`
-}
-
-func newFromWheelRoundEntry(roundId uuid.UUID, entry wheel.WheelRoundEntry) *sqlWheelRoundEntry {
-	return &sqlWheelRoundEntry{
-		RoundID: roundId,
-		UserID:  entry.UserID,
-		Wager:   entry.Wager,
-		Pick:    string(entry.Pick),
-	}
-}
-
-func newFromWheelRound(round wheel.WheelRound) *sqlWheelRound {
-	return &sqlWheelRound{
-		ID:                round.ID,
-		OutcomeIdx:        round.GetOutcomeIdx(),
-		RoundStartTime:    round.RoundStartTime,
-		SpinStartTime:     round.SpinStartTime,
-		RoundEndTime:      round.RoundEndTime,
-		ServerSeed:        round.StringServerSeed(),
-		ClientSeed:        round.StringClientSeed(),
-		BlindedServerSeed: round.StringBlindedServerSeed(),
-		Nonce:             int(round.Nonce),
-		Status:            round.Status,
-	}
+	EntryTime time.Time `db:"entry_time"`
 }
 
 type WheelRoundsRepo struct {
@@ -81,40 +66,109 @@ func NewWheelRoundsRepo(db *sqlx.DB) *WheelRoundsRepo {
 	return &WheelRoundsRepo{db}
 }
 
-func (r WheelRoundsRepo) GetLatest(ctx context.Context) (wheel.WheelRound, error) {
-	var sqlRound sqlWheelRound
+func (r WheelRoundsRepo) GetByID(ctx context.Context, id uuid.UUID) (*wheel.WheelRound, error) {
+	sqlRound := &sqlWheelRound{}
 
-	if err := r.db.GetContext(ctx, &sqlRound, getLatestRoundQuery); err != nil {
+	if err := r.db.GetContext(ctx, sqlRound, getByIdQuery, id); err != nil {
 		if err == sql.ErrNoRows {
-			return wheel.WheelRound{}, nil
+			return nil, nil
 		}
 
-		return wheel.WheelRound{}, err
+		return nil, errors.Wrap(err, "failed to get wheel round by id")
 	}
 
-	return wheel.WheelRound{
-		ID: sqlRound.ID,
-		ProvablyFair: wheel.ProvablyFair{
-			ServerSeed:        []byte(sqlRound.ServerSeed),
-			ClientSeed:        []byte(sqlRound.ClientSeed),
-			BlindedServerSeed: []byte(sqlRound.BlindedServerSeed),
-			Nonce:             uint64(sqlRound.Nonce),
-		},
-		Status:         sqlRound.Status,
-		Outcome:        wheel.WheelItems()[sqlRound.OutcomeIdx],
-		RoundStartTime: sqlRound.RoundStartTime,
-		SpinStartTime:  sqlRound.SpinStartTime,
-		RoundEndTime:   sqlRound.RoundEndTime,
-	}, nil
+	return sqlRound.toWheelRound(), nil
 }
 
-func (r WheelRoundsRepo) CreateWheelRound(ctx context.Context, round wheel.WheelRound) error {
-	sqlRound := newFromWheelRound(round)
+func (r WheelRoundsRepo) GetLatest(ctx context.Context) (*wheel.WheelRound, error) {
+	sqlRound := &sqlWheelRound{}
 
-	_, err := r.db.NamedExecContext(ctx, createWheelRoundQuery, sqlRound)
+	if err := r.db.GetContext(ctx, sqlRound, getLatestQuery); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, errors.Wrap(err, "failed to get latest wheel round")
+	}
+
+	return sqlRound.toWheelRound(), nil
+}
+
+func (r WheelRoundsRepo) Create(ctx context.Context, round *wheel.WheelRound) error {
+	sqlRound := &sqlWheelRound{}
+	sqlRound.fromWheelRound(round)
+
+	_, err := r.db.NamedExecContext(ctx, createQuery, sqlRound)
 	if err != nil {
 		return errors.Wrap(err, "failed to create wheel round")
 	}
 
 	return nil
+}
+
+func (r WheelRoundsRepo) CreateEntry(ctx context.Context, roundEntry *wheel.WheelRoundEntry) error {
+	round, err := r.GetByID(ctx, roundEntry.RoundID)
+	if err != nil {
+		return errors.Wrap(err, "failed to create wheel round entry")
+	}
+
+	if round == nil {
+		return errors.New("failed to create wheel round entry: unknown round id")
+	}
+
+	sqlRoundEntry := &sqlWheelRoundEntry{}
+	sqlRoundEntry.fromWheelRoundEntry(roundEntry)
+
+	_, err = r.db.NamedExecContext(ctx, createEntryQuery, sqlRoundEntry)
+	if err != nil {
+		return errors.Wrap(err, "failed to create wheel round entry")
+	}
+
+	return nil
+}
+
+func (r *sqlWheelRound) fromWheelRound(round *wheel.WheelRound) {
+	if round == nil {
+		return
+	}
+
+	r.ID = round.ID
+	r.OutcomeIdx = round.GetOutcomeIdx()
+	r.RoundStartTime = round.RoundStartTime
+	r.SpinStartTime = round.SpinStartTime
+	r.RoundEndTime = round.RoundEndTime
+	r.ServerSeed = round.StringServerSeed()
+	r.ClientSeed = round.StringClientSeed()
+	r.BlindedServerSeed = round.StringBlindedServerSeed()
+	r.Nonce = int(round.Nonce)
+	r.Status = round.Status
+}
+
+func (r *sqlWheelRound) toWheelRound() *wheel.WheelRound {
+	return &wheel.WheelRound{
+		ID: r.ID,
+		ProvablyFair: wheel.ProvablyFair{
+			ServerSeed:        []byte(r.ServerSeed),
+			ClientSeed:        []byte(r.ClientSeed),
+			BlindedServerSeed: []byte(r.BlindedServerSeed),
+			Nonce:             uint64(r.Nonce),
+		},
+		Status:         r.Status,
+		Outcome:        wheel.WheelItems()[r.OutcomeIdx],
+		RoundStartTime: r.RoundStartTime,
+		SpinStartTime:  r.SpinStartTime,
+		RoundEndTime:   r.RoundEndTime,
+	}
+}
+
+func (e *sqlWheelRoundEntry) fromWheelRoundEntry(entry *wheel.WheelRoundEntry) {
+	if entry == nil {
+		return
+	}
+
+	e.RoundID = entry.RoundID
+	e.UserID = entry.UserID
+	e.Bet = entry.Bet
+	e.Pick = string(entry.Pick)
+	e.EntryTime = entry.EntryTime
 }

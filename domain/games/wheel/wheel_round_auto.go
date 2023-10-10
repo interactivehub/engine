@@ -31,6 +31,10 @@ func (r *WheelRoundAuto) Start() WheelRoundAutoer {
 
 	go func() {
 		for {
+			if r.onRoundStart != nil {
+				r.onRoundStart(r.WheelRound)
+			}
+
 			select {
 			case <-r.openToSpinTimer.C:
 				_, err := r.Roll()

@@ -22,9 +22,20 @@ const (
         FROM wheel_rounds
         ORDER BY round_end_time DESC;
     `
-	createQuery = `
+	upsertQuery = `
         INSERT INTO wheel_rounds (id, outcome_idx, round_start_time, spin_start_time, round_end_time, server_seed, client_seed, blinded_server_seed, nonce, status)
-        VALUES (:id, :outcome_idx, :round_start_time, :spin_start_time, :round_end_time, :server_seed, :client_seed, :blinded_server_seed, :nonce, :status);
+        VALUES (:id, :outcome_idx, :round_start_time, :spin_start_time, :round_end_time, :server_seed, :client_seed, :blinded_server_seed, :nonce, :status)
+        ON CONFLICT (id) DO UPDATE 
+        SET 
+            outcome_idx = :outcome_idx,
+            round_start_time = :round_start_time,
+            spin_start_time = :spin_start_time,
+            round_end_time = :round_end_time,
+            server_seed = :server_seed,
+            client_seed = :client_seed,
+            blinded_server_seed = :blinded_server_seed,
+            nonce = :nonce,
+            status = :status;
     `
 	createEntryQuery = `
         INSERT INTO wheel_round_entries (round_id, user_id, bet, pick, entry_time)
@@ -94,13 +105,13 @@ func (r WheelRoundsRepo) GetLatest(ctx context.Context) (*wheel.WheelRound, erro
 	return sqlRound.toWheelRound(), nil
 }
 
-func (r WheelRoundsRepo) Create(ctx context.Context, round *wheel.WheelRound) error {
+func (r WheelRoundsRepo) Upsert(ctx context.Context, round *wheel.WheelRound) error {
 	sqlRound := &sqlWheelRound{}
 	sqlRound.fromWheelRound(round)
 
-	_, err := r.db.NamedExecContext(ctx, createQuery, sqlRound)
+	_, err := r.db.NamedExecContext(ctx, upsertQuery, sqlRound)
 	if err != nil {
-		return errors.Wrap(err, "failed to create wheel round")
+		return errors.Wrap(err, "failed to upsert wheel round")
 	}
 
 	return nil

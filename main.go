@@ -54,7 +54,7 @@ func main() {
 
 	if runWS {
 		go server.RunWSServer(func(server *server.WSServer) {
-			wsListener := ports.NewWSListener(server.Client(), app)
+			wsListener := ports.NewWSListener(server.Client(), app, logger)
 			wsWriter.SetClient(server.Client())
 			wsListener.ListenEvents()
 		})

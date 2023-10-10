@@ -3,12 +3,13 @@ package ports
 import (
 	"context"
 	"encoding/json"
-	"log"
 
 	"github.com/gorilla/websocket"
 	"github.com/interactivehub/engine/app"
 	"github.com/interactivehub/engine/app/command"
 	"github.com/interactivehub/engine/common/ws"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type WSListener interface {
@@ -18,10 +19,15 @@ type WSListener interface {
 type wsListener struct {
 	client *websocket.Conn
 	app    app.Application
+	logger *zap.Logger
 }
 
-func NewWSListener(client *websocket.Conn, app app.Application) *wsListener {
-	return &wsListener{client, app}
+func NewWSListener(
+	client *websocket.Conn,
+	app app.Application,
+	logger *zap.Logger,
+) *wsListener {
+	return &wsListener{client, app, logger}
 }
 
 func (l *wsListener) ListenEvents() {
@@ -30,11 +36,11 @@ func (l *wsListener) ListenEvents() {
 
 		err := l.client.ReadJSON(&event)
 		if err != nil {
-			log.Println(err)
+			l.logger.Error(errors.Wrap(err, "failed to parse event payload").Error())
 			break
 		}
 
-		handleEvent(context.Background(), l.app, event)
+		handleEvent(context.Background(), l.app, event, l.logger)
 	}
 }
 
@@ -46,12 +52,15 @@ type RequestWheelRoundEventPayload struct {
 	ClientSeed string `json:"clientSeed"`
 }
 
-func handleEvent(ctx context.Context, app app.Application, event ws.Event) {
+func handleEvent(ctx context.Context, app app.Application, event ws.Event, logger *zap.Logger) {
 	switch event.Type {
 	case RequestWheelRoundEventType:
-		var payload RequestWheelRoundEventPayload
-		json.Unmarshal(event.Payload, &payload)
+		payload := &RequestWheelRoundEventPayload{}
+		json.Unmarshal(event.Payload, payload)
 
-		app.Commands.StartWheelRound.Handle(ctx, command.StartWheelRound{ClientSeed: []byte(payload.ClientSeed)})
+		err := app.Commands.StartWheelRound.Handle(ctx, command.StartWheelRound{ClientSeed: []byte(payload.ClientSeed)})
+		if err != nil {
+			logger.Error(errors.Wrap(err, "failed to start wheel round").Error())
+		}
 	}
 }

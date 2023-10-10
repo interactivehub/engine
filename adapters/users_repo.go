@@ -16,10 +16,10 @@ const (
 )
 
 type sqlUser struct {
-	ID       string `db:"id"`
-	UniqueID string `db:"unique_id"`
-	Nickname string `db:"nickname"`
-	Points   int    `db:"points"`
+	ID       string  `db:"id"`
+	UniqueID string  `db:"unique_id"`
+	Nickname string  `db:"nickname"`
+	Points   float64 `db:"points"`
 }
 
 type UsersRepo struct {

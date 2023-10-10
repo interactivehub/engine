@@ -21,10 +21,10 @@ type NewUser struct {
 }
 
 type NewUserEventPayload struct {
-	ID       string `json:"id"`
-	UniqueID string `json:"uniqueId"`
-	Nickname string `json:"nickname"`
-	Points   int    `json:"points"`
+	ID       string  `json:"id"`
+	UniqueID string  `json:"uniqueId"`
+	Nickname string  `json:"nickname"`
+	Points   float64 `json:"points"`
 }
 
 type NewUserHandler decorator.CommandHandler[NewUser]

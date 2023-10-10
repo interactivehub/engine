@@ -6,10 +6,10 @@ type User struct {
 	ID       string
 	UniqueID string
 	Nickname string
-	Points   int
+	Points   float64
 }
 
-func NewUser(id, uniqueId, nickname string, points int) (*User, error) {
+func NewUser(id, uniqueId, nickname string, points float64) (*User, error) {
 	if id == "" {
 		return nil, errors.New("missing id")
 	}
@@ -22,6 +22,10 @@ func NewUser(id, uniqueId, nickname string, points int) (*User, error) {
 		return nil, errors.New("missing nickname")
 	}
 
+	if points < 0 {
+		return nil, errors.New("negative points")
+	}
+
 	return &User{
 		id,
 		uniqueId,
@@ -30,6 +34,6 @@ func NewUser(id, uniqueId, nickname string, points int) (*User, error) {
 	}, nil
 }
 
-func (u User) CanBet(bet int) bool {
+func (u User) HasEnoughBalance(bet float64) bool {
 	return u.Points >= bet
 }

@@ -156,6 +156,10 @@ func (r *sqlWheelRound) fromWheelRound(round *wheel.WheelRound) {
 }
 
 func (r *sqlWheelRound) toWheelRound() *wheel.WheelRound {
+	if r == nil {
+		return nil
+	}
+
 	return &wheel.WheelRound{
 		ID: r.ID,
 		ProvablyFair: wheel.ProvablyFair{

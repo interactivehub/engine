@@ -10,10 +10,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	ErrCannotStartWheelRound = errors.New("cannot start wheel round")
-)
-
 type StartWheelRound struct {
 	ClientSeed []byte
 }
@@ -57,7 +53,7 @@ func (h startWheelRoundHandler) Handle(ctx context.Context, cmd StartWheelRound)
 	//    - has status `end`: the latest round is ended
 	canStart := wheel.CanStartNewRound(latestRound)
 	if !canStart {
-		return ErrCannotStartWheelRound
+		return errors.New("cannot start wheel round")
 	}
 
 	// 3. Set the previous round nonce

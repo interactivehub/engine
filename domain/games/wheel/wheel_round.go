@@ -155,6 +155,14 @@ func (r *WheelRound) GetOutcomeIdx() int {
 	return r.Outcome.idx
 }
 
+func (r *WheelRound) IsStatus(status WheelRoundStatus) bool {
+	if r == nil {
+		return false
+	}
+
+	return r.Status == status
+}
+
 func Verify(clientSeed []byte, serverSeed []byte, nonce uint64, randNum uint64) (bool, error) {
 	game, _ := NewWheelRound(clientSeed, serverSeed, 0, WheelRoundOpenDuration, WheelRoundSpinDuration)
 	game.Nonce = nonce
@@ -173,5 +181,5 @@ func CanStartNewRound(previousRound *WheelRound) bool {
 		return true
 	}
 
-	return previousRound.Status == WheelRoundStatusEnd
+	return previousRound.IsStatus(WheelRoundStatusEnd)
 }

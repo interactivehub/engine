@@ -69,7 +69,7 @@ func (h newUserHandler) Handle(ctx context.Context, cmd NewUser) error {
 		return errors.Wrap(err, "failed to create new user")
 	}
 
-	err = h.usersRepo.CreateUser(ctx, *user)
+	err = h.usersRepo.CreateUser(ctx, user)
 	if err != nil {
 		return errors.Wrap(err, "failed to create new user")
 	}

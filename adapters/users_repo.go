@@ -2,18 +2,17 @@ package adapters
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/interactivehub/engine/domain/user"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
-// TODO: use squirrel
 const (
-	CreateUserQuery     = "INSERT INTO users (id, unique_id, nickname, points) VALUES (:id, :unique_id, :nickname, :points)"
-	CountUserByIdQuery  = "SELECT COUNT(id) FROM users WHERE id=$1"
-	GetUserByIDQuery    = "SELECT id, unique_id, nickname, points FROM users WHERE id=$1"
-	GetLeaderBoardQuery = "SELECT id, unique_id, nickname, points FROM users ORDER BY points DESC LIMIT $1"
+	CreateUserQuery    = "INSERT INTO users (id, unique_id, nickname, points) VALUES (:id, :unique_id, :nickname, :points)"
+	CountUserByIdQuery = "SELECT COUNT(id) FROM users WHERE id=$1"
+	GetUserByIDQuery   = "SELECT id, unique_id, nickname, points FROM users WHERE id=$1"
 )
 
 type sqlUser struct {
@@ -21,15 +20,6 @@ type sqlUser struct {
 	UniqueID string `db:"unique_id"`
 	Nickname string `db:"nickname"`
 	Points   int    `db:"points"`
-}
-
-func newFromUser(user user.User) *sqlUser {
-	return &sqlUser{
-		ID:       user.ID,
-		UniqueID: user.UniqueID,
-		Nickname: user.Nickname,
-		Points:   user.Points,
-	}
 }
 
 type UsersRepo struct {
@@ -44,26 +34,18 @@ func NewUsersRepo(db *sqlx.DB) *UsersRepo {
 	return &UsersRepo{db}
 }
 
-func (u UsersRepo) GetUserById(ctx context.Context, id string) (user.User, error) {
-	user := user.User{}
+func (u UsersRepo) GetByID(ctx context.Context, id string) (*user.User, error) {
+	sqlUser := &sqlUser{}
 
-	err := u.db.GetContext(ctx, &user, GetUserByIDQuery, id)
-	if err != nil {
-		return user, errors.Wrap(err, "failed to get user by id")
+	if err := u.db.GetContext(ctx, sqlUser, GetUserByIDQuery, id); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, errors.Wrap(err, "failed to get user by id")
 	}
 
-	return user, nil
-}
-
-func (u UsersRepo) GetLeaderBoard(ctx context.Context, limit int32) ([]user.User, error) {
-	var leaderBoard []user.User
-
-	err := u.db.SelectContext(ctx, &leaderBoard, GetLeaderBoardQuery, limit)
-	if err != nil {
-		return leaderBoard, errors.Wrap(err, "failed to get leader board")
-	}
-
-	return leaderBoard, nil
+	return sqlUser.toUser(), nil
 }
 
 func (u UsersRepo) UserWithIdExists(ctx context.Context, id string) (bool, error) {
@@ -77,8 +59,9 @@ func (u UsersRepo) UserWithIdExists(ctx context.Context, id string) (bool, error
 	return count > 0, nil
 }
 
-func (u UsersRepo) CreateUser(ctx context.Context, user user.User) error {
-	sqlUser := newFromUser(user)
+func (u UsersRepo) CreateUser(ctx context.Context, user *user.User) error {
+	sqlUser := &sqlUser{}
+	sqlUser.fromUser(user)
 
 	rows, err := u.db.NamedQueryContext(ctx, CreateUserQuery, sqlUser)
 	if err != nil {
@@ -88,4 +71,28 @@ func (u UsersRepo) CreateUser(ctx context.Context, user user.User) error {
 	defer rows.Close()
 
 	return nil
+}
+
+func (u *sqlUser) fromUser(user *user.User) {
+	if user == nil {
+		return
+	}
+
+	u.ID = user.ID
+	u.UniqueID = user.UniqueID
+	u.Nickname = user.Nickname
+	u.Points = user.Points
+}
+
+func (u *sqlUser) toUser() *user.User {
+	if u == nil {
+		return nil
+	}
+
+	return &user.User{
+		ID:       u.ID,
+		UniqueID: u.UniqueID,
+		Nickname: u.Nickname,
+		Points:   u.Points,
+	}
 }

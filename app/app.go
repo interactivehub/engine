@@ -11,4 +11,5 @@ type Application struct {
 type Commands struct {
 	NewUser         command.NewUserHandler
 	StartWheelRound command.StartWheelRoundHandler
+	JoinWheelRound  command.JoinWheelRoundHandler
 }

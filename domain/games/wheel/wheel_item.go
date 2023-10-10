@@ -1,6 +1,8 @@
 package wheel
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
@@ -14,7 +16,7 @@ const (
 	ItemColorGrey   WheelItemColor = "grey"
 	ItemColorBlue   WheelItemColor = "blue"
 	ItemColorYellow WheelItemColor = "yellow"
-	ItemColorBrand  WheelItemColor = "brand"
+	ItemColorRed    WheelItemColor = "red"
 )
 
 type wheelItem struct {
@@ -27,12 +29,12 @@ const (
 	WinningPercentageGrey   = float64(15) / float64(31)
 	WinningPercentageBlue   = float64(10) / float64(31)
 	WinningPercentageYellow = float64(5) / float64(31)
-	WinningPercentageBrand  = float64(1) / float64(31)
+	WinningPercentageRed    = float64(1) / float64(31)
 )
 
 var (
 	wheelItems = []wheelItem{
-		{idx: 0, color: "#FA4475", payout: WinningPercentageBrand},   // Brand, 30x
+		{idx: 0, color: "#FA4475", payout: WinningPercentageRed},     // Red, 30x
 		{idx: 1, color: "#FFE066", payout: WinningPercentageYellow},  // Red, 5x
 		{idx: 2, color: "#606E80", payout: WinningPercentageGrey},    // Grey, 2x
 		{idx: 3, color: "#5ADBFF", payout: WinningPercentageBlue},    // Blue, 3x
@@ -65,6 +67,24 @@ var (
 		{idx: 30, color: "#606E80", payout: WinningPercentageGrey},   // Grey, 2x
 	}
 )
+
+func ParseWheelItemColor(s string) (WheelItemColor, error) {
+	normalizedStr := strings.ToLower(s)
+
+	colors := map[string]WheelItemColor{
+		"grey":   ItemColorGrey,
+		"blue":   ItemColorBlue,
+		"yellow": ItemColorYellow,
+		"red":    ItemColorRed,
+	}
+
+	itemColor, ok := colors[normalizedStr]
+	if !ok {
+		return itemColor, errors.New("failed to parse wheel item color")
+	}
+
+	return itemColor, nil
+}
 
 func WheelItems() []wheelItem {
 	return wheelItems

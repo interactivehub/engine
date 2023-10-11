@@ -15,7 +15,10 @@ require (
 	google.golang.org/protobuf v1.31.0
 )
 
-require go.uber.org/multierr v1.10.0 // indirect
+require (
+	github.com/Rhymond/go-money v1.0.10 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
+)
 
 require (
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect

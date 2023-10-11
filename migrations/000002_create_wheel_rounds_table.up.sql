@@ -21,7 +21,7 @@ CREATE TABLE
         bet FLOAT NOT NULL,
         pick VARCHAR(255) NOT NULL,
         entry_time TIMESTAMP NOT NULL DEFAULT NOW (),
-        PRIMARY KEY (round_id, user_id),
+        PRIMARY KEY (round_id, user_id, pick),
         FOREIGN KEY (round_id) REFERENCES wheel_rounds (id) ON UPDATE CASCADE ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
     );

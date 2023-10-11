@@ -15,7 +15,7 @@ const (
 	getByIdQuery = `
         SELECT id, outcome_idx, round_start_time, spin_start_time, round_end_time, server_seed, client_seed, blinded_server_seed, nonce, status
         FROM wheel_rounds
-        WHERE id=$1;
+        WHERE id = $1;
     `
 	getLatestQuery = `
         SELECT id, outcome_idx, round_start_time, spin_start_time, round_end_time, server_seed, client_seed, blinded_server_seed, nonce, status
@@ -37,9 +37,23 @@ const (
             nonce = :nonce,
             status = :status;
     `
-	createEntryQuery = `
+	upsertEntryQuery = `
         INSERT INTO wheel_round_entries (round_id, user_id, bet, pick, entry_time)
-        VALUES (:round_id, :user_id, :bet, :pick, :entry_time); 
+        VALUES (:round_id, :user_id, :bet, :pick, :entry_time)
+        ON CONFLICT (round_id, user_id, pick) DO UPDATE
+        SET
+            round_id = :round_id,
+            user_id = :user_id,
+            bet = :bet,
+            pick = :pick,
+            entry_time = :entry_time;
+    `
+	getEntryByRoundIdUserIdPick = `
+        SELECT round_id, user_id, bet, pick, entry_time
+        FROM wheel_round_entries
+        WHERE round_id = $1
+        AND user_id = $2
+        AND pick = $3;
     `
 )
 
@@ -117,7 +131,26 @@ func (r WheelRoundsRepo) Upsert(ctx context.Context, round *wheel.WheelRound) er
 	return nil
 }
 
-func (r WheelRoundsRepo) CreateEntry(ctx context.Context, roundEntry *wheel.WheelRoundEntry) error {
+func (r WheelRoundsRepo) GetEntry(
+	ctx context.Context,
+	roundID uuid.UUID,
+	userID string,
+	pick wheel.WheelItemColor,
+) (*wheel.WheelRoundEntry, error) {
+	sqlEntry := &sqlWheelRoundEntry{}
+
+	if err := r.db.GetContext(ctx, sqlEntry, getEntryByRoundIdUserIdPick, roundID, userID, pick); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, errors.Wrap(err, "failed to get wheel round entry")
+	}
+
+	return sqlEntry.toWheelRoundEntry(), nil
+}
+
+func (r WheelRoundsRepo) UpsertEntry(ctx context.Context, roundEntry *wheel.WheelRoundEntry) error {
 	round, err := r.GetByID(ctx, roundEntry.RoundID)
 	if err != nil {
 		return errors.Wrap(err, "failed to create wheel round entry")
@@ -127,12 +160,23 @@ func (r WheelRoundsRepo) CreateEntry(ctx context.Context, roundEntry *wheel.Whee
 		return errors.New("failed to create wheel round entry: unknown round id")
 	}
 
-	sqlRoundEntry := &sqlWheelRoundEntry{}
-	sqlRoundEntry.fromWheelRoundEntry(roundEntry)
-
-	_, err = r.db.NamedExecContext(ctx, createEntryQuery, sqlRoundEntry)
+	existingEntry, err := r.GetEntry(ctx, roundEntry.RoundID, roundEntry.UserID, roundEntry.Pick)
 	if err != nil {
 		return errors.Wrap(err, "failed to create wheel round entry")
+	}
+
+	sqlRoundEntry := &sqlWheelRoundEntry{}
+
+	if existingEntry != nil {
+		existingEntry.Bet += roundEntry.Bet
+		sqlRoundEntry.fromWheelRoundEntry(existingEntry)
+	} else {
+		sqlRoundEntry.fromWheelRoundEntry(roundEntry)
+	}
+
+	_, err = r.db.NamedExecContext(ctx, upsertEntryQuery, sqlRoundEntry)
+	if err != nil {
+		return errors.Wrap(err, "failed to upsert wheel round entry")
 	}
 
 	return nil
@@ -186,4 +230,18 @@ func (e *sqlWheelRoundEntry) fromWheelRoundEntry(entry *wheel.WheelRoundEntry) {
 	e.Bet = entry.Bet
 	e.Pick = string(entry.Pick)
 	e.EntryTime = entry.EntryTime
+}
+
+func (e *sqlWheelRoundEntry) toWheelRoundEntry() *wheel.WheelRoundEntry {
+	if e == nil {
+		return nil
+	}
+
+	return &wheel.WheelRoundEntry{
+		RoundID:   e.RoundID,
+		UserID:    e.UserID,
+		Pick:      wheel.WheelItemColor(e.Pick),
+		Bet:       e.Bet,
+		EntryTime: e.EntryTime,
+	}
 }

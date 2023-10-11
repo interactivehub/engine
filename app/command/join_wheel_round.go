@@ -76,14 +76,14 @@ func (h joinWheelRoundHandler) Handle(ctx context.Context, cmd JoinWheelRound) e
 	// 5. Check if the latest round is open
 	canJoin := latestRound.IsStatus(wheel.WheelRoundStatusOpen)
 	if !canJoin {
-		return errors.New("cannot join wheel round")
+		return errors.New("failed to join wheel round: round is not open")
 	}
 
 	// 6. Create new wheel round entry
 	roundEntry := wheel.NewWheelRoundEntry(latestRound.ID, cmd.UserID, cmd.Bet, cmd.Pick)
 
 	// 7. Persist new wheel round entry
-	err = h.wheelRoundsRepo.CreateEntry(ctx, roundEntry)
+	err = h.wheelRoundsRepo.UpsertEntry(ctx, roundEntry)
 	if err != nil {
 		return errors.Wrap(err, "failed to create wheel round")
 	}

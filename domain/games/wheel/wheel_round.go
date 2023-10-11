@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	WheelRoundOpenDuration = 15 * time.Second
+	WheelRoundOpenDuration = 30 * time.Second
 	WheelRoundSpinDuration = 10 * time.Second
 )
 

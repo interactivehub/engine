@@ -62,22 +62,21 @@ func (h joinWheelRoundHandler) Handle(ctx context.Context, cmd JoinWheelRound) e
 		return errors.New("failed to join wheel round: user id is unknown")
 	}
 
-	// 3. Check if user has enough balance
-	if !user.HasEnoughBalance(cmd.Bet) {
-		return errors.New("failed to join wheel round: user has not enough balance")
-	}
-
-	// 4. Retrieve latest wheel round
+	// 3. Retrieve latest wheel round
 	latestRound, err := h.wheelRoundsRepo.GetLatest(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to retrieve latest wheel round")
 	}
 
-	// 5. Check if the latest round is open
+	// 4. Check if the latest round is open
 	canJoin := latestRound.IsStatus(wheel.WheelRoundStatusOpen)
 	if !canJoin {
 		return errors.New("failed to join wheel round: round is not open")
 	}
+
+	// TODO
+	// 5. Subtract user money and update db entry (gotta do it in the same transaction as point 6)
+	user.Bet(cmd.Bet)
 
 	// 6. Create new wheel round entry
 	roundEntry := wheel.NewWheelRoundEntry(latestRound.ID, cmd.UserID, cmd.Bet, cmd.Pick)

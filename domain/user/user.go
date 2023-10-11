@@ -39,14 +39,3 @@ func NewUser(id, uniqueId, nickname string, amount float64) (*User, error) {
 		HubMoney: hubMoney,
 	}, nil
 }
-
-func (u User) HasEnoughBalance(bet float64) bool {
-	hubBet := currency.NewHubMoney(bet)
-
-	hasEnough, err := u.HubMoney.GreaterThanOrEqual(hubBet.Money)
-	if err != nil {
-		return false
-	}
-
-	return hasEnough
-}

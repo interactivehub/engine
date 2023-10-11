@@ -10,7 +10,16 @@ import (
 )
 
 const (
-	CreateUserQuery    = "INSERT INTO users (id, unique_id, nickname, hub_money) VALUES (:id, :unique_id, :nickname, :hub_money)"
+	CreateUserQuery = "INSERT INTO users (id, unique_id, nickname, hub_money) VALUES (:id, :unique_id, :nickname, :hub_money)"
+	UpdateUserQuery = `
+            UPDATE users 
+            SET 
+                id = :id,
+                unique_id = :unique_id,
+                nickname = :nickname,
+                hub_money = :hub_money,
+            WHERE id = :id
+            `
 	CountUserByIdQuery = "SELECT COUNT(id) FROM users WHERE id=$1"
 	GetUserByIDQuery   = "SELECT id, unique_id, nickname, hub_money FROM users WHERE id=$1"
 )
@@ -63,12 +72,31 @@ func (u UsersRepo) CreateUser(ctx context.Context, user *user.User) error {
 	sqlUser := &sqlUser{}
 	sqlUser.fromUser(user)
 
-	rows, err := u.db.NamedQueryContext(ctx, CreateUserQuery, sqlUser)
+	_, err := u.db.NamedExecContext(ctx, CreateUserQuery, sqlUser)
 	if err != nil {
 		return errors.Wrap(err, "failed to create user")
 	}
 
-	defer rows.Close()
+	return nil
+}
+
+func (u UsersRepo) UpdateUser(ctx context.Context, user *user.User) error {
+	userExists, err := u.UserWithIdExists(ctx, user.ID)
+	if err != nil {
+		return errors.Wrap(err, "failed to get user by id")
+	}
+
+	if !userExists {
+		return errors.New("failed to update user: unknown id")
+	}
+
+	sqlUser := &sqlUser{}
+	sqlUser.fromUser(user)
+
+	_, err = u.db.NamedExecContext(ctx, UpdateUserQuery, sqlUser)
+	if err != nil {
+		return errors.Wrap(err, "failed to update user")
+	}
 
 	return nil
 }

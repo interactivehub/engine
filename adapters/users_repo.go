@@ -10,16 +10,16 @@ import (
 )
 
 const (
-	CreateUserQuery    = "INSERT INTO users (id, unique_id, nickname, points) VALUES (:id, :unique_id, :nickname, :points)"
+	CreateUserQuery    = "INSERT INTO users (id, unique_id, nickname, hub_money) VALUES (:id, :unique_id, :nickname, :hub_money)"
 	CountUserByIdQuery = "SELECT COUNT(id) FROM users WHERE id=$1"
-	GetUserByIDQuery   = "SELECT id, unique_id, nickname, points FROM users WHERE id=$1"
+	GetUserByIDQuery   = "SELECT id, unique_id, nickname, hub_money FROM users WHERE id=$1"
 )
 
 type sqlUser struct {
 	ID       string  `db:"id"`
 	UniqueID string  `db:"unique_id"`
 	Nickname string  `db:"nickname"`
-	Points   float64 `db:"points"`
+	HubMoney float64 `db:"hub_money"`
 }
 
 type UsersRepo struct {
@@ -81,7 +81,7 @@ func (u *sqlUser) fromUser(user *user.User) {
 	u.ID = user.ID
 	u.UniqueID = user.UniqueID
 	u.Nickname = user.Nickname
-	u.Points = user.Points
+	u.HubMoney = user.HubMoney.AsMajorUnits()
 }
 
 func (u *sqlUser) toUser() *user.User {
@@ -89,10 +89,10 @@ func (u *sqlUser) toUser() *user.User {
 		return nil
 	}
 
-	return &user.User{
-		ID:       u.ID,
-		UniqueID: u.UniqueID,
-		Nickname: u.Nickname,
-		Points:   u.Points,
+	user, err := user.NewUser(u.ID, u.UniqueID, u.Nickname, u.HubMoney)
+	if err != nil {
+		panic(err)
 	}
+
+	return user
 }

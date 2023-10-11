@@ -1,15 +1,19 @@
 package user
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/interactivehub/engine/domain/currency"
+)
 
 type User struct {
 	ID       string
 	UniqueID string
 	Nickname string
-	Points   float64
+	HubMoney *currency.HubMoney
 }
 
-func NewUser(id, uniqueId, nickname string, points float64) (*User, error) {
+func NewUser(id, uniqueId, nickname string, amount float64) (*User, error) {
 	if id == "" {
 		return nil, errors.New("missing id")
 	}
@@ -22,18 +26,27 @@ func NewUser(id, uniqueId, nickname string, points float64) (*User, error) {
 		return nil, errors.New("missing nickname")
 	}
 
-	if points < 0 {
-		return nil, errors.New("negative points")
+	hubMoney := currency.NewHubMoney(amount)
+
+	if hubMoney.IsNegative() {
+		return nil, errors.New("negative hub money")
 	}
 
 	return &User{
-		id,
-		uniqueId,
-		nickname,
-		points,
+		ID:       id,
+		UniqueID: uniqueId,
+		Nickname: nickname,
+		HubMoney: hubMoney,
 	}, nil
 }
 
 func (u User) HasEnoughBalance(bet float64) bool {
-	return u.Points >= bet
+	hubBet := currency.NewHubMoney(bet)
+
+	hasEnough, err := u.HubMoney.GreaterThanOrEqual(hubBet.Money)
+	if err != nil {
+		return false
+	}
+
+	return hasEnough
 }

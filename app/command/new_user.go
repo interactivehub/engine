@@ -21,10 +21,10 @@ type NewUser struct {
 }
 
 type NewUserEventPayload struct {
-	ID       string  `json:"id"`
-	UniqueID string  `json:"uniqueId"`
-	Nickname string  `json:"nickname"`
-	Points   float64 `json:"points"`
+	ID                string `json:"id"`
+	UniqueID          string `json:"uniqueId"`
+	Nickname          string `json:"nickname"`
+	FormattedHubMoney string `json:"hubMoney"`
 }
 
 type NewUserHandler decorator.CommandHandler[NewUser]
@@ -75,10 +75,10 @@ func (h newUserHandler) Handle(ctx context.Context, cmd NewUser) error {
 	}
 
 	newUserEventPayload := NewUserEventPayload{
-		ID:       user.ID,
-		UniqueID: user.UniqueID,
-		Nickname: user.Nickname,
-		Points:   user.Points,
+		ID:                user.ID,
+		UniqueID:          user.UniqueID,
+		Nickname:          user.Nickname,
+		FormattedHubMoney: user.HubMoney.Display(),
 	}
 
 	err = h.wsWriter.WriteEvent(NewUserEventType, newUserEventPayload)
